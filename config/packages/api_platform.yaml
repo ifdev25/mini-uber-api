@@ -1,0 +1,23 @@
+api_platform:
+    title: Mini Uber API
+    version: 1.0.0
+    defaults:
+        stateless: true
+        cache_headers:
+            vary: ['Content-Type', 'Authorization', 'Origin']
+
+    # Configuration Swagger pour JWT (méthode officielle API Platform)
+    swagger:
+        api_keys:
+            JWT:
+                name: Authorization
+                type: header
+
+    openapi:
+        contact:
+            name: API Support
+            email: support@miniuber.com
+        license:
+            name: MIT
+        swagger_ui_extra_configuration:
+            persistAuthorization: true

@@ -1,0 +1,163 @@
+<?php
+
+namespace App\Service;
+
+use App\Entity\Ride;
+use App\Entity\User;
+use Symfony\Component\Mercure\HubInterface;
+use Symfony\Component\Mercure\Update;
+
+class NotificationService
+{
+    public function __construct(
+        private HubInterface $hub
+    ) {}
+
+    /**
+     * Notify nearby drivers about a new ride request
+     */
+    public function notifyDriversAboutNewRide(Ride $ride, array $nearbyDrivers): void
+    {
+        $data = [
+            'type' => 'new_ride',
+            'ride' => [
+                'id' => $ride->getId(),
+                'pickupAddress' => $ride->getPickUpAddress(),
+                'dropoffAddress' => $ride->getDropoffAddress(),
+                'estimatedPrice' => $ride->getEstimatedPrice(),
+                'estimatedDistance' => $ride->getEstimatedDistance(),
+                'vehiculeType' => $ride->getVehiculeType(),
+                'passenger' => [
+                    'name' => $ride->getPassenger()->getFirstname() . ' ' . $ride->getPassenger()->getLastname(),
+                    'rating' => $ride->getPassenger()->getRating()
+                ]
+            ]
+        ];
+
+        // Send to each nearby driver
+        foreach ($nearbyDrivers as $driver) {
+            $topic = sprintf('drivers/%d', $driver->getId());
+            $this->publish($topic, $data);
+        }
+    }
+
+    /**
+     * Notify passenger that a driver accepted their ride
+     */
+    public function notifyPassengerRideAccepted(Ride $ride): void
+    {
+        $data = [
+            'type' => 'ride_accepted',
+            'ride' => [
+                'id' => $ride->getId(),
+                'status' => $ride->getStatus(),
+                'driver' => [
+                    'name' => $ride->getDriver()->getFirstname() . ' ' . $ride->getDriver()->getLastname(),
+                    'rating' => $ride->getDriver()->getRating(),
+                    'phone' => $ride->getDriver()->getPhone(),
+                    'vehicle' => [
+                        'model' => $ride->getDriver()->getDriver()->getVehiculeModel(),
+                        'color' => $ride->getDriver()->getDriver()->getVehiculeColor(),
+                        'type' => $ride->getDriver()->getDriver()->getVehiculeType()
+                    ]
+                ]
+            ]
+        ];
+
+        $topic = sprintf('users/%d', $ride->getPassenger()->getId());
+        $this->publish($topic, $data);
+    }
+
+    /**
+     * Notify passenger that the ride has started
+     */
+    public function notifyPassengerRideStarted(Ride $ride): void
+    {
+        $data = [
+            'type' => 'ride_started',
+            'ride' => [
+                'id' => $ride->getId(),
+                'status' => $ride->getStatus(),
+                'startedAt' => $ride->getStartedAt()?->format('Y-m-d H:i:s')
+            ]
+        ];
+
+        $topic = sprintf('users/%d', $ride->getPassenger()->getId());
+        $this->publish($topic, $data);
+    }
+
+    /**
+     * Notify passenger that the ride is completed
+     */
+    public function notifyPassengerRideCompleted(Ride $ride): void
+    {
+        $data = [
+            'type' => 'ride_completed',
+            'ride' => [
+                'id' => $ride->getId(),
+                'status' => $ride->getStatus(),
+                'finalPrice' => $ride->getFinalPrice(),
+                'completedAt' => $ride->getCompletedAt()?->format('Y-m-d H:i:s')
+            ]
+        ];
+
+        $topic = sprintf('users/%d', $ride->getPassenger()->getId());
+        $this->publish($topic, $data);
+    }
+
+    /**
+     * Notify driver about ride status changes
+     */
+    public function notifyDriverRideUpdate(Ride $ride, string $message): void
+    {
+        if (!$ride->getDriver()) {
+            return;
+        }
+
+        $data = [
+            'type' => 'ride_update',
+            'message' => $message,
+            'ride' => [
+                'id' => $ride->getId(),
+                'status' => $ride->getStatus()
+            ]
+        ];
+
+        $topic = sprintf('drivers/%d', $ride->getDriver()->getId());
+        $this->publish($topic, $data);
+    }
+
+    /**
+     * Update driver location in real-time
+     */
+    public function updateDriverLocation(User $driver, float $lat, float $lng): void
+    {
+        if ($driver->getUsertype() !== 'driver') {
+            return;
+        }
+
+        $data = [
+            'type' => 'location_update',
+            'location' => [
+                'lat' => $lat,
+                'lng' => $lng
+            ]
+        ];
+
+        $topic = sprintf('drivers/%d/location', $driver->getId());
+        $this->publish($topic, $data);
+    }
+
+    /**
+     * Publish a message to a Mercure topic
+     */
+    private function publish(string $topic, array $data): void
+    {
+        $update = new Update(
+            sprintf('http://localhost:3000/%s', $topic),
+            json_encode($data)
+        );
+
+        $this->hub->publish($update);
+    }
+}

@@ -98,7 +98,7 @@ sudo sh get-docker.sh
 ### 1. Cloner le projet
 
 ```bash
-git clone <votre-repo-url>
+git clone https://github.com/ifdev25/mini-uber-api.git
 cd mini-uber-api
 ```
 
@@ -158,7 +158,8 @@ APP_SECRET=votre-secret-aleatoire-32-caracteres
 
 ###> doctrine/doctrine-bundle ###
 # Format : postgresql://user:password@host:port/database?serverVersion=version&charset=utf8
-DATABASE_URL="postgresql://app:!ChangeMe!@127.0.0.1:5432/mini_uber_db?serverVersion=16&charset=utf8"
+# Le port 65300 correspond au mapping Docker (voir compose.yaml)
+DATABASE_URL="postgresql://app:!ChangeMe!@localhost:65300/app?serverVersion=16&charset=utf8"
 ###< doctrine/doctrine-bundle ###
 
 ###> nelmio/cors-bundle ###
@@ -440,6 +441,30 @@ php -S localhost:8000 -t public/
 open http://localhost:8000/api
 ```
 
+### Tester l'API avec Swagger
+
+L'API utilise l'authentification JWT. Pour tester les endpoints protégés dans Swagger :
+
+1. **Obtenir un token JWT** :
+   - Dans Swagger UI, utilisez l'endpoint `POST /api/login`
+   - Body : `{"email": "john.doe@email.com", "password": "password123"}`
+   - Copiez le token de la réponse
+
+2. **S'authentifier dans Swagger** :
+   - Cliquez sur le bouton **"Authorize" 🔓** en haut à droite
+   - Dans le champ "Value", entrez : `Bearer VOTRE_TOKEN`
+   - Cliquez sur "Authorize" puis "Close"
+
+3. **Tester les endpoints** :
+   - Les cadenas 🔒 sont maintenant fermés
+   - Tous les endpoints protégés sont accessibles
+
+**Comptes de test disponibles** (après avoir chargé les fixtures) :
+- **Admin** : `admin@miniuber.com` / `admin123`
+- **Passager** : `john.doe@email.com` / `password123`
+- **Chauffeur 1** : `marie.martin@driver.com` / `driver123`
+- **Chauffeur 2** : `pierre.dubois@driver.com` / `driver123`
+
 ---
 
 ## 🛣️ Endpoints disponibles
@@ -719,17 +744,11 @@ docker compose logs -f mercure
 
 ## 📞 Support et Contact
 
-- **Documentation API :** http://localhost:8000/api
-- **Issues :** [GitHub Issues](votre-repo/issues)
-- **Email :** support@miniuber.com
+- **Issues :** [GitHub Issues](https://github.com/ifdev25/mini-uber-api/issues)
+- **Email :** ishake.fouhal@gmail.com
 
 ---
 
-## 📄 Licence
-
-Ce projet est sous licence propriétaire.
-
----
 
 ## 🎯 Prochaines étapes suggérées
 
@@ -742,4 +761,3 @@ Ce projet est sous licence propriétaire.
 - [ ] Dockerisation complète de l'application
 - [ ] Rate limiting et throttling
 - [ ] Monitoring avec Sentry
-

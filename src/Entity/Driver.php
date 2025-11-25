@@ -15,6 +15,7 @@ use ApiPlatform\Metadata\Delete;
 use App\Repository\DriverRepository;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
+use Symfony\Component\Serializer\Annotation\MaxDepth;
 use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: DriverRepository::class)]
@@ -49,63 +50,64 @@ use Symfony\Component\Validator\Constraints as Assert;
 )]
 #[ApiFilter(BooleanFilter::class, properties: ['isAvailable', 'isVerified'])]
 #[ApiFilter(SearchFilter::class, properties: [
-    'vehiculeType' => 'exact',
-    'vehiculeColor' => 'partial',
-    'vehiculeModel' => 'partial'
+    'vehicleType' => 'exact',
+    'vehicleColor' => 'partial',
+    'vehicleModel' => 'partial'
 ])]
 #[ApiFilter(OrderFilter::class, properties: ['verifiedAt'])]
 class Driver
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
-    #[ORM\Column]
-    #[Groups(['driver:read'])]
+    #[ORM\Column(name: 'id', type: 'integer')]
+    #[Groups(['driver:read', 'ride:read'])]
     private ?int $id = null;
 
     #[ORM\OneToOne(inversedBy: 'driver', cascade: ['persist', 'remove'])]
     #[ORM\JoinColumn(nullable: false)]
-    #[Groups(['driver:read', 'driver:write'])]
+    #[Groups(['driver:read', 'driver:write', 'ride:read'])]
+    #[MaxDepth(1)]
     private ?User $user = null;
 
-    #[ORM\Column(length: 50)]
-    #[Groups(['driver:read', 'driver:write'])]
+    #[ORM\Column(name: 'vehiclemodel', type: 'string', length: 50)]
+    #[Groups(['driver:read', 'driver:write', 'ride:read'])]
     #[Assert\NotBlank]
-    private ?string $vehiculeModel = null;
+    private ?string $vehicleModel = null;
 
-    #[ORM\Column(length: 50)]
-    #[Groups(['driver:read', 'driver:write'])]
+    #[ORM\Column(name: 'vehicletype', type: 'string', length: 50)]
+    #[Groups(['driver:read', 'driver:write', 'ride:read'])]
     #[Assert\NotBlank]
     #[Assert\Choice(choices: ['standard', 'comfort', 'premium', 'xl'])]
-    private ?string $vehiculeType = null;
+    private ?string $vehicleType = null;
 
-    #[ORM\Column(length: 50)]
-    #[Groups(['driver:read', 'driver:write'])]
+    #[ORM\Column(name: 'vehiclecolor', type: 'string', length: 50)]
+    #[Groups(['driver:read', 'driver:write', 'ride:read'])]
     #[Assert\NotBlank]
-    private ?string $vehiculeColor = null;
+    private ?string $vehicleColor = null;
 
-    #[ORM\Column]
-    #[Groups(['driver:read', 'driver:write', 'driver:location'])]
+    #[ORM\Column(name: 'currentlatitude', type: 'float')]
+    #[Groups(['driver:read', 'driver:write', 'driver:location', 'ride:read'])]
     private ?float $currentLatitude = null;
 
-    #[ORM\Column]
-    #[Groups(['driver:read', 'driver:write', 'driver:location'])]
+    #[ORM\Column(name: 'currentlongitude', type: 'float')]
+    #[Groups(['driver:read', 'driver:write', 'driver:location', 'ride:read'])]
     private ?float $currentLongitude = null;
 
-    #[ORM\Column(length: 50)]
+    #[ORM\Column(name: 'licencenumber', type: 'string', length: 50)]
     #[Groups(['driver:read', 'driver:write'])]
     #[Assert\NotBlank]
     private ?string $licenceNumber = null;
 
-    #[ORM\Column(nullable: true)]
+    #[ORM\Column(name: 'verifiedat', type: 'datetime_immutable', nullable: true)]
     #[Groups(['driver:read'])]
     private ?\DateTimeImmutable $verifiedAt = null;
 
-    #[ORM\Column]
+    #[ORM\Column(name: 'isverified', type: 'boolean')]
     #[Groups(['driver:read'])]
     private bool $isVerified = false;
 
-    #[ORM\Column]
-    #[Groups(['driver:read', 'driver:write', 'driver:availability'])]
+    #[ORM\Column(name: 'isavailable', type: 'boolean')]
+    #[Groups(['driver:read', 'driver:write', 'driver:availability', 'ride:read'])]
     private bool $isAvailable = false;
 
     public function getId(): ?int
@@ -125,38 +127,38 @@ class Driver
         return $this;
     }
 
-    public function getVehiculeModel(): ?string
+    public function getVehicleModel(): ?string
     {
-        return $this->vehiculeModel;
+        return $this->vehicleModel;
     }
 
-    public function setVehiculeModel(string $vehiculeModel): static
+    public function setVehicleModel(string $vehicleModel): static
     {
-        $this->vehiculeModel = $vehiculeModel;
+        $this->vehicleModel = $vehicleModel;
 
         return $this;
     }
 
-    public function getVehiculeType(): ?string
+    public function getVehicleType(): ?string
     {
-        return $this->vehiculeType;
+        return $this->vehicleType;
     }
 
-    public function setVehiculeType(string $vehiculeType): static
+    public function setVehicleType(string $vehicleType): static
     {
-        $this->vehiculeType = $vehiculeType;
+        $this->vehicleType = $vehicleType;
 
         return $this;
     }
 
-    public function getVehiculeColor(): ?string
+    public function getVehicleColor(): ?string
     {
-        return $this->vehiculeColor;
+        return $this->vehicleColor;
     }
 
-    public function setVehiculeColor(string $vehiculeColor): static
+    public function setVehicleColor(string $vehicleColor): static
     {
-        $this->vehiculeColor = $vehiculeColor;
+        $this->vehicleColor = $vehicleColor;
 
         return $this;
     }

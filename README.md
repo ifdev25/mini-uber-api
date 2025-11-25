@@ -11,13 +11,14 @@ API REST moderne pour une application de covoiturage type Uber, construite avec 
 3. [Configuration](#-configuration)
 4. [Base de données et migrations](#-base-de-données-et-migrations)
 5. [Authentification JWT](#-authentification-jwt)
-6. [Notifications temps réel (Mercure)](#-notifications-temps-réel-mercure)
-7. [Fixtures (données de test)](#-fixtures-données-de-test)
-8. [Tests](#-tests)
-9. [Documentation API](#-documentation-api)
-10. [Endpoints disponibles](#-endpoints-disponibles)
-11. [Déploiement](#-déploiement)
-12. [Troubleshooting](#-troubleshooting)
+6. [Vérification d'Email](#️-vérification-demail)
+7. [Notifications temps réel (Mercure)](#-notifications-temps-réel-mercure)
+8. [Fixtures (données de test)](#-fixtures-données-de-test)
+9. [Tests](#-tests)
+10. [Documentation API](#-documentation-api)
+11. [Endpoints disponibles](#-endpoints-disponibles)
+12. [Déploiement](#-déploiement)
+13. [Troubleshooting](#-troubleshooting)
 
 ---
 
@@ -296,6 +297,307 @@ curl -X POST http://localhost:8000/api/login \
 curl http://localhost:8000/api/rides \
   -H "Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGc..."
 ```
+
+---
+
+## ✉️ Vérification d'Email
+
+### Fonctionnalité
+
+Le système de vérification d'email permet de :
+- Confirmer l'adresse email lors de l'inscription
+- Sécuriser les comptes utilisateurs
+- Envoyer un lien de vérification valable 24h
+
+### Configuration
+
+```env
+###> Email Verification ###
+# URL de votre application frontend (pour les liens de vérification)
+FRONTEND_URL=http://localhost:3000
+###< Email Verification ###
+```
+
+### Endpoints
+
+#### 1. Inscription (génère automatiquement un token)
+
+```bash
+POST /api/register
+```
+
+**Body :**
+```json
+{
+  "email": "user@example.com",
+  "password": "password123",
+  "firstName": "John",
+  "lastName": "Doe",
+  "phone": "+33612345678",
+  "userType": "passenger"
+}
+```
+
+**Réponse :**
+```json
+{
+  "message": "Inscription réussie. Veuillez vérifier votre email pour activer votre compte.",
+  "user": {
+    "id": 1,
+    "email": "user@example.com",
+    "firstName": "John",
+    "lastName": "Doe",
+    "userType": "passenger",
+    "isVerified": false
+  },
+  "token": "eyJ0eXAiOiJKV1Qi..."
+}
+```
+
+#### 2. Vérifier l'email
+
+```bash
+POST /api/verify-email
+```
+
+**Body :**
+```json
+{
+  "token": "abc123def456..."
+}
+```
+
+**Réponse :**
+```json
+{
+  "message": "Email vérifié avec succès",
+  "user": {
+    "id": 1,
+    "email": "user@example.com",
+    "isVerified": true
+  }
+}
+```
+
+#### 3. Renvoyer l'email de vérification
+
+```bash
+POST /api/resend-verification
+```
+
+**Body :**
+```json
+{
+  "email": "user@example.com"
+}
+```
+
+**Réponse :**
+```json
+{
+  "message": "Email de vérification renvoyé"
+}
+```
+
+### Configuration de l'envoi d'emails
+
+Le système d'envoi d'emails utilise **Symfony Mailer**. La configuration se fait via la variable d'environnement `MAILER_DSN` dans le fichier `.env.local`.
+
+#### Étape 1 : Configurer MAILER_DSN dans `.env.local`
+
+Plusieurs options sont disponibles selon vos besoins :
+
+##### Option 1 : Gmail (Recommandé pour débuter)
+
+```env
+# Dans .env.local
+MAILER_DSN=gmail+smtp://your-email@gmail.com:your-app-password@default
+MAILER_FROM_EMAIL=your-email@gmail.com
+MAILER_FROM_NAME="Mini Uber"
+```
+
+**Configuration Gmail :**
+1. Activer la validation en deux étapes sur votre compte Google
+2. Créer un mot de passe d'application :
+   - Accéder à https://myaccount.google.com/apppasswords
+   - Créer un nouveau mot de passe d'application
+   - Utiliser ce mot de passe (16 caractères) dans `MAILER_DSN`
+
+**Exemple complet :**
+```env
+MAILER_DSN=gmail+smtp://john.doe@gmail.com:abcd1234efgh5678@default
+MAILER_FROM_EMAIL=john.doe@gmail.com
+MAILER_FROM_NAME="Mini Uber"
+```
+
+##### Option 2 : Mailtrap (Recommandé pour développement/tests)
+
+[Mailtrap](https://mailtrap.io/) est un service gratuit qui capture les emails sans les envoyer réellement.
+
+```env
+# Dans .env.local
+MAILER_DSN=smtp://username:password@smtp.mailtrap.io:2525
+MAILER_FROM_EMAIL=noreply@mini-uber.com
+MAILER_FROM_NAME="Mini Uber"
+```
+
+**Configuration Mailtrap :**
+1. Créer un compte gratuit sur https://mailtrap.io
+2. Créer une inbox
+3. Copier les identifiants SMTP (username et password)
+4. Les utiliser dans `MAILER_DSN`
+
+##### Option 3 : SMTP Générique
+
+Pour tout autre fournisseur SMTP (SendGrid, Mailgun, Amazon SES, etc.) :
+
+```env
+MAILER_DSN=smtp://username:password@smtp.example.com:587
+MAILER_FROM_EMAIL=noreply@mini-uber.com
+MAILER_FROM_NAME="Mini Uber"
+```
+
+**Formats de DSN courants :**
+- **Port 587** (TLS) : `smtp://user:pass@smtp.example.com:587`
+- **Port 465** (SSL) : `smtps://user:pass@smtp.example.com:465`
+- **Port 25** (non sécurisé) : `smtp://user:pass@smtp.example.com:25`
+
+##### Option 4 : Mode développement sans envoi (Null)
+
+Pour tester sans envoyer d'emails réels, utilisez le transport `null` :
+
+```env
+MAILER_DSN=null://null
+```
+
+Les emails ne seront pas envoyés mais seront loggés dans les logs Symfony pour débogage.
+
+#### Étape 2 : Tester l'envoi d'emails
+
+Après configuration, testez l'envoi d'emails :
+
+```bash
+# 1. S'inscrire
+curl -X POST http://localhost:8000/api/register \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "test@example.com",
+    "password": "password123",
+    "firstName": "Test",
+    "lastName": "User",
+    "phone": "+33612345678",
+    "userType": "passenger"
+  }'
+
+# 2. Vérifier votre boîte email (Gmail/Mailtrap/etc.)
+# Vous devriez recevoir un email avec le lien de vérification
+```
+
+#### Étape 3 : Vérifier les logs (si problème)
+
+En cas de problème, vérifiez les logs Symfony :
+
+```bash
+# Voir les logs du serveur Symfony
+symfony server:log
+
+# Ou vérifier le cache
+tail -f var/cache/dev/App_KernelDevDebugContainerCompiler.log
+```
+
+#### Configuration avancée
+
+**Personnaliser l'expéditeur par email :**
+
+Vous pouvez modifier `src/Service/EmailService.php:36-37` pour personnaliser l'expéditeur :
+
+```php
+$fromEmail = $_ENV['MAILER_FROM_EMAIL'] ?? 'noreply@mini-uber.com';
+$fromName = $_ENV['MAILER_FROM_NAME'] ?? 'Mini Uber';
+```
+
+**Ajouter un nom d'affichage :**
+
+```php
+$email = (new Email())
+    ->from(new Address($fromEmail, $fromName))
+    ->to($to)
+    ->subject($subject)
+    ->html($body);
+```
+
+#### Providers SMTP populaires
+
+| Provider | DSN | Documentation |
+|----------|-----|---------------|
+| **Gmail** | `gmail+smtp://user:app-password@default` | [Guide Gmail](https://support.google.com/accounts/answer/185833) |
+| **Mailtrap** | `smtp://user:pass@smtp.mailtrap.io:2525` | [Mailtrap Docs](https://mailtrap.io/docs/) |
+| **SendGrid** | `smtp://apikey:YOUR_API_KEY@smtp.sendgrid.net:587` | [SendGrid SMTP](https://docs.sendgrid.com/for-developers/sending-email/integrating-with-the-smtp-api) |
+| **Mailgun** | `smtp://postmaster@domain:password@smtp.mailgun.org:587` | [Mailgun SMTP](https://documentation.mailgun.com/en/latest/user_manual.html#sending-via-smtp) |
+| **Amazon SES** | `smtp://username:password@email-smtp.region.amazonaws.com:587` | [AWS SES SMTP](https://docs.aws.amazon.com/ses/latest/dg/smtp-credentials.html) |
+
+#### Dépannage
+
+**Problème : "Connection refused"**
+- Vérifiez que le port SMTP est correct (587, 465, ou 25)
+- Vérifiez que votre pare-feu autorise les connexions sortantes
+
+**Problème : "Authentication failed"**
+- Vérifiez vos identifiants SMTP
+- Pour Gmail : utilisez un mot de passe d'application, pas votre mot de passe normal
+
+**Problème : "Email not sent"**
+- Vérifiez les logs Symfony : `symfony server:log`
+- Vérifiez que `MAILER_DSN` est bien configuré dans `.env.local`
+- Testez avec `MAILER_DSN=null://null` pour voir si le problème vient de la configuration SMTP
+
+### Intégration Frontend (Next.js)
+
+**Page de vérification :**
+```typescript
+// app/verify-email/page.tsx
+'use client';
+
+import { useSearchParams } from 'next/navigation';
+import { useEffect, useState } from 'react';
+
+export default function VerifyEmail() {
+  const searchParams = useSearchParams();
+  const token = searchParams.get('token');
+  const [status, setStatus] = useState('verifying');
+
+  useEffect(() => {
+    if (token) {
+      fetch('http://localhost:8000/api/verify-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token })
+      })
+      .then(res => res.json())
+      .then(data => {
+        setStatus(data.message ? 'success' : 'error');
+      })
+      .catch(() => setStatus('error'));
+    }
+  }, [token]);
+
+  return (
+    <div>
+      {status === 'verifying' && <p>Vérification en cours...</p>}
+      {status === 'success' && <p>✅ Email vérifié avec succès!</p>}
+      {status === 'error' && <p>❌ Token invalide ou expiré</p>}
+    </div>
+  );
+}
+```
+
+### Champs de l'entité User
+
+| Champ | Type | Description |
+|-------|------|-------------|
+| `isVerified` | boolean | Statut de vérification (false par défaut) |
+| `verificationToken` | string | Token unique de vérification |
+| `verificationTokenExpiresAt` | datetime | Date d'expiration du token (24h) |
 
 ---
 
@@ -746,6 +1048,24 @@ docker compose logs -f mercure
 
 - **Issues :** [GitHub Issues](https://github.com/ifdev25/mini-uber-api/issues)
 - **Email :** ishake.fouhal@gmail.com
+
+---
+
+## 📝 Changelog récent
+
+### 2025-01-25 - Corrections API Driver
+
+**Problèmes corrigés :**
+- ✅ Exposition du champ `isAvailable` dans le contexte `ride:read` (Driver.php:110)
+- ✅ Exposition du champ `rating` dans les contextes `driver:read` et `ride:read` (User.php:93)
+
+**Impact :**
+- Les réponses API incluent maintenant la disponibilité des chauffeurs dans toutes les requêtes
+- Le rating des chauffeurs est visible lors de la récupération des courses et des profils drivers
+
+**Fichiers modifiés :**
+- `src/Entity/Driver.php` - Ajout du groupe `ride:read` à `isAvailable`
+- `src/Entity/User.php` - Ajout des groupes `driver:read` et `ride:read` à `rating`
 
 ---
 

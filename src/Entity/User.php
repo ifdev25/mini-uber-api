@@ -18,6 +18,7 @@ use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
+use Symfony\Component\Serializer\Annotation\MaxDepth;
 use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
@@ -37,10 +38,10 @@ use Symfony\Component\Security\Core\User\UserInterface;
     ]
 )]
 #[ApiFilter(SearchFilter::class, properties: [
-    'usertype' => 'exact',
+    'userType' => 'exact',
     'email' => 'partial',
-    'firstname' => 'partial',
-    'lastname' => 'partial'
+    'firstName' => 'partial',
+    'lastName' => 'partial'
 ])]
 #[ApiFilter(RangeFilter::class, properties: ['rating', 'totalRides'])]
 #[ApiFilter(OrderFilter::class, properties: ['createdAt', 'rating', 'totalRides'])]
@@ -48,64 +49,75 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
-    #[ORM\Column]
-    #[Groups(['user:read'])]
+    #[ORM\Column(name: 'id', type: 'integer')]
+    #[Groups(['user:read', 'driver:read', 'ride:read'])]
     private ?int $id = null;
 
-    #[ORM\Column(length: 180)]
+    #[ORM\Column(name: 'email', type: 'string', length: 180)]
     #[Groups(['user:read', 'user:write'])]
     #[Assert\NotBlank]
     #[Assert\Email]
     private ?string $email = null;
 
-    #[ORM\Column(type: Types::ARRAY)]
+    #[ORM\Column(name: 'roles', type: Types::ARRAY)]
     #[Groups(['user:read'])]
     private array $roles = [];
 
-    #[ORM\Column(length: 255)]
+    #[ORM\Column(name: 'password', type: 'string', length: 255)]
     #[Groups(['user:write'])]
     #[Assert\NotBlank(groups: ['user:write'])]
     #[Assert\Length(min: 6)]
     private ?string $password = null;
 
-    #[ORM\Column(length: 255)]
-    #[Groups(['user:read', 'user:write'])]
+    #[ORM\Column(name: 'firstname', type: 'string', length: 255)]
+    #[Groups(['user:read', 'user:write', 'driver:read', 'ride:read'])]
     #[Assert\NotBlank]
-    private ?string $firstname = null;
+    private ?string $firstName = null;
 
-    #[ORM\Column(length: 255)]
-    #[Groups(['user:read', 'user:write'])]
+    #[ORM\Column(name: 'lastname', type: 'string', length: 255)]
+    #[Groups(['user:read', 'user:write', 'driver:read', 'ride:read'])]
     #[Assert\NotBlank]
-    private ?string $lastname = null;
+    private ?string $lastName = null;
 
-    #[ORM\Column(length: 255)]
+    #[ORM\Column(name: 'phone', type: 'string', length: 255)]
     #[Groups(['user:read', 'user:write'])]
     #[Assert\NotBlank]
     private ?string $phone = null;
 
-    #[ORM\Column(length: 20)]
+    #[ORM\Column(name: 'usertype', type: 'string', length: 20)]
     #[Groups(['user:read', 'user:write'])]
     #[Assert\Choice(choices: ['passenger', 'driver'])]
-    private ?string $usertype = null;
+    private ?string $userType = null;
 
-    #[ORM\Column(nullable: true)]
-    #[Groups(['user:read'])]
+    #[ORM\Column(name: 'rating', type: 'float', nullable: true)]
+    #[Groups(['user:read', 'driver:read', 'ride:read'])]
     private ?float $rating = null;
 
-    #[ORM\Column(nullable: true)]
+    #[ORM\Column(name: 'totalrides', type: 'integer', nullable: true)]
     #[Groups(['user:read'])]
     private ?int $totalRides = null;
 
-    #[ORM\Column(length: 255, nullable: true)]
+    #[ORM\Column(name: 'profilepicture', type: 'string', length: 255, nullable: true)]
     #[Groups(['user:read', 'user:write'])]
     private ?string $profilePicture = null;
 
-    #[ORM\Column]
+    #[ORM\Column(name: 'createdat', type: 'datetime_immutable')]
     #[Groups(['user:read'])]
     private ?\DateTimeImmutable $createdAt = null;
 
+    #[ORM\Column(name: 'isverified', type: Types::BOOLEAN, options: ['default' => false])]
+    #[Groups(['user:read'])]
+    private bool $isVerified = false;
+
+    #[ORM\Column(name: 'verificationtoken', type: 'string', length: 255, nullable: true)]
+    private ?string $verificationToken = null;
+
+    #[ORM\Column(name: 'verificationtokenexpiresat', type: 'datetime_immutable', nullable: true)]
+    private ?\DateTimeImmutable $verificationTokenExpiresAt = null;
+
     #[ORM\OneToOne(mappedBy: 'user', cascade: ['persist', 'remove'])]
     #[Groups(['user:read'])]
+    #[MaxDepth(1)]
     private ?Driver $driver = null;
 
     /**
@@ -184,26 +196,26 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this;
     }
 
-    public function getFirstname(): ?string
+    public function getFirstName(): ?string
     {
-        return $this->firstname;
+        return $this->firstName;
     }
 
-    public function setFirstname(string $firstname): static
+    public function setFirstName(string $firstName): static
     {
-        $this->firstname = $firstname;
+        $this->firstName = $firstName;
 
         return $this;
     }
 
-    public function getLastname(): ?string
+    public function getLastName(): ?string
     {
-        return $this->lastname;
+        return $this->lastName;
     }
 
-    public function setLastname(string $lastname): static
+    public function setLastName(string $lastName): static
     {
-        $this->lastname = $lastname;
+        $this->lastName = $lastName;
 
         return $this;
     }
@@ -220,14 +232,14 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this;
     }
 
-    public function getUsertype(): ?string
+    public function getUserType(): ?string
     {
-        return $this->usertype;
+        return $this->userType;
     }
 
-    public function setUsertype(string $usertype): static
+    public function setUserType(string $userType): static
     {
-        $this->usertype = $usertype;
+        $this->userType = $userType;
 
         return $this;
     }
@@ -399,6 +411,39 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this;
     }
 
+    public function isVerified(): bool
+    {
+        return $this->isVerified;
+    }
+
+    public function setIsVerified(bool $isVerified): static
+    {
+        $this->isVerified = $isVerified;
+        return $this;
+    }
+
+    public function getVerificationToken(): ?string
+    {
+        return $this->verificationToken;
+    }
+
+    public function setVerificationToken(?string $verificationToken): static
+    {
+        $this->verificationToken = $verificationToken;
+        return $this;
+    }
+
+    public function getVerificationTokenExpiresAt(): ?\DateTimeImmutable
+    {
+        return $this->verificationTokenExpiresAt;
+    }
+
+    public function setVerificationTokenExpiresAt(?\DateTimeImmutable $verificationTokenExpiresAt): static
+    {
+        $this->verificationTokenExpiresAt = $verificationTokenExpiresAt;
+        return $this;
+    }
+
     // UserInterface methods
     public function getUserIdentifier(): string
     {
@@ -408,5 +453,56 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function eraseCredentials(): void
     {
         // If you store any temporary, sensitive data on the user, clear it here
+    }
+
+    public function setCreatedAt(\DateTimeImmutable $createdAt): static
+    {
+        $this->createdAt = $createdAt;
+
+        return $this;
+    }
+
+    public function addRatingsGiven(Rating $ratingsGiven): static
+    {
+        if (!$this->ratingsGiven->contains($ratingsGiven)) {
+            $this->ratingsGiven->add($ratingsGiven);
+            $ratingsGiven->setRater($this);
+        }
+
+        return $this;
+    }
+
+    public function removeRatingsGiven(Rating $ratingsGiven): static
+    {
+        if ($this->ratingsGiven->removeElement($ratingsGiven)) {
+            // set the owning side to null (unless already changed)
+            if ($ratingsGiven->getRater() === $this) {
+                $ratingsGiven->setRater(null);
+            }
+        }
+
+        return $this;
+    }
+
+    public function addRatingsReceived(Rating $ratingsReceived): static
+    {
+        if (!$this->ratingsReceived->contains($ratingsReceived)) {
+            $this->ratingsReceived->add($ratingsReceived);
+            $ratingsReceived->setRated($this);
+        }
+
+        return $this;
+    }
+
+    public function removeRatingsReceived(Rating $ratingsReceived): static
+    {
+        if ($this->ratingsReceived->removeElement($ratingsReceived)) {
+            // set the owning side to null (unless already changed)
+            if ($ratingsReceived->getRated() === $this) {
+                $ratingsReceived->setRated(null);
+            }
+        }
+
+        return $this;
     }
 }

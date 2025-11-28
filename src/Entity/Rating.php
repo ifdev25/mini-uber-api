@@ -30,7 +30,7 @@ class Rating
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
-    #[ORM\Column]
+    #[ORM\Column(name: 'id', type: 'integer')]
     #[Groups(['rating:read'])]
     private ?int $id = null;
 
@@ -54,13 +54,13 @@ class Rating
     #[Assert\NotBlank]
     private ?User $rated = null;
 
-    #[ORM\Column]
+    #[ORM\Column(name: 'score', type: 'float')]
     #[Groups(['rating:read', 'rating:write'])]
     #[Assert\NotBlank]
     #[Assert\Range(min: 1, max: 5)]
     private ?float $score = null;
 
-    #[ORM\Column(type: Types::TEXT, nullable: true)]
+    #[ORM\Column(name: 'comment', type: Types::TEXT, nullable: true)]
     #[Groups(['rating:read', 'rating:write'])]
     #[Assert\Length(max: 1000)]
     private ?string $comment = null;

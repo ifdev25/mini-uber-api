@@ -22,8 +22,8 @@ class DriverMatchingService
             ->createQueryBuilder('d')
             ->where('d.isAvailable = true')
             ->andWhere('d.isVerified = true')
-            ->andWhere('d.vehiculeType = :vehiculeType')
-            ->setParameter('vehiculeType', $ride->getVehiculeType())
+            ->andWhere('d.vehicleType = :vehicleType')
+            ->setParameter('vehicleType', $ride->getVehicleType())
             ->getQuery()
             ->getResult();
 
@@ -37,8 +37,8 @@ class DriverMatchingService
                     $driver->getCurrentLongitude()
                 );
 
-                // Si le chauffeur est à moins de 5km
-                if ($distance <= 5) {
+                // Si le chauffeur est à moins de 10km
+                if ($distance <= 10) {
                     $nearbyDriverUsers[] = $driver->getUser();
                 }
             }

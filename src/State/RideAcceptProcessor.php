@@ -54,11 +54,11 @@ class RideAcceptProcessor implements ProcessorInterface
         }
 
         // Vérifier que le type de véhicule du chauffeur correspond
-        if ($driver->getDriver()->getVehiculeType() !== $data->getVehiculeType()) {
+        if ($driver->getDriver()->getVehicleType() !== $data->getVehicleType()) {
             throw new BadRequestHttpException(sprintf(
                 'Vehicle type mismatch. Required: %s, Driver has: %s',
-                $data->getVehiculeType(),
-                $driver->getDriver()->getVehiculeType()
+                $data->getVehicleType(),
+                $driver->getDriver()->getVehicleType()
             ));
         }
 

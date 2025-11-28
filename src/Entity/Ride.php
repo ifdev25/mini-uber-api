@@ -17,6 +17,7 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
+use Symfony\Component\Serializer\Annotation\MaxDepth;
 use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: RideRepository::class)]
@@ -48,12 +49,20 @@ use Symfony\Component\Validator\Constraints as Assert;
             processor: \App\State\RideStatusProcessor::class,
             denormalizationContext: ['groups' => ['ride:status']],
             description: 'Update ride status (driver only)'
+        ),
+        // Opération personnalisée : annuler une course
+        new Post(
+            uriTemplate: '/rides/{id}/cancel',
+            security: "is_granted('ROLE_USER') and (object.getPassenger() == user or object.getDriver() == user)",
+            processor: \App\State\RideCancelProcessor::class,
+            denormalizationContext: ['groups' => ['ride:cancel']],
+            description: 'Cancel a ride (passenger or driver)'
         )
     ]
 )]
 #[ApiFilter(SearchFilter::class, properties: [
     'status' => 'exact',
-    'vehiculeType' => 'exact',
+    'vehicleType' => 'exact',
     'passenger' => 'exact',
     'driver' => 'exact'
 ])]
@@ -70,6 +79,7 @@ class Ride
     #[ORM\ManyToOne(inversedBy: 'ridesAsDriver')]
     #[ORM\JoinColumn(nullable: true)]
     #[Groups(['ride:read'])]
+    #[MaxDepth(1)]
     private ?User $driver = null;
 
     #[ORM\ManyToOne(inversedBy: 'ridesAsPassenger')]
@@ -84,17 +94,17 @@ class Ride
     #[ORM\Column(length: 255)]
     #[Groups(['ride:read', 'ride:write'])]
     #[Assert\NotBlank]
-    private ?string $pickUpAddress = null;
+    private ?string $pickupAddress = null;
 
     #[ORM\Column]
     #[Groups(['ride:read', 'ride:write'])]
     #[Assert\NotBlank]
-    private ?float $pickUpLatitude = null;
+    private ?float $pickupLatitude = null;
 
     #[ORM\Column]
     #[Groups(['ride:read', 'ride:write'])]
     #[Assert\NotBlank]
-    private ?float $pickUpLongitude = null;
+    private ?float $pickupLongitude = null;
 
     #[ORM\Column(length: 255)]
     #[Groups(['ride:read', 'ride:write'])]
@@ -130,7 +140,7 @@ class Ride
     #[ORM\Column(length: 20)]
     #[Groups(['ride:read', 'ride:write'])]
     #[Assert\Choice(choices: ['standard', 'comfort', 'premium', 'xl'])]
-    private ?string $vehiculeType = null;
+    private ?string $vehicleType = null;
 
     #[ORM\Column]
     #[Groups(['ride:read'])]
@@ -205,38 +215,38 @@ class Ride
         return $this;
     }
 
-    public function getPickUpAddress(): ?string
+    public function getPickupAddress(): ?string
     {
-        return $this->pickUpAddress;
+        return $this->pickupAddress;
     }
 
-    public function setPickUpAddress(string $pickUpAddress): static
+    public function setPickupAddress(string $pickupAddress): static
     {
-        $this->pickUpAddress = $pickUpAddress;
+        $this->pickupAddress = $pickupAddress;
 
         return $this;
     }
 
-    public function getPickUpLatitude(): ?float
+    public function getPickupLatitude(): ?float
     {
-        return $this->pickUpLatitude;
+        return $this->pickupLatitude;
     }
 
-    public function setPickUpLatitude(float $pickUpLatitude): static
+    public function setPickupLatitude(float $pickupLatitude): static
     {
-        $this->pickUpLatitude = $pickUpLatitude;
+        $this->pickupLatitude = $pickupLatitude;
 
         return $this;
     }
 
-    public function getPickUpLongitude(): ?float
+    public function getPickupLongitude(): ?float
     {
-        return $this->pickUpLongitude;
+        return $this->pickupLongitude;
     }
 
-    public function setPickUpLongitude(float $pickUpLongitude): static
+    public function setPickupLongitude(float $pickupLongitude): static
     {
-        $this->pickUpLongitude = $pickUpLongitude;
+        $this->pickupLongitude = $pickupLongitude;
 
         return $this;
     }
@@ -325,14 +335,14 @@ class Ride
         return $this;
     }
 
-    public function getVehiculeType(): ?string
+    public function getVehicleType(): ?string
     {
-        return $this->vehiculeType;
+        return $this->vehicleType;
     }
 
-    public function setVehiculeType(string $vehiculeType): static
+    public function setVehicleType(string $vehicleType): static
     {
-        $this->vehiculeType = $vehiculeType;
+        $this->vehicleType = $vehicleType;
 
         return $this;
     }

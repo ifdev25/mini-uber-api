@@ -47,3 +47,7 @@ composer.phar
 npm-debug.log
 yarn-error.log
 ###< Node ###
+
+###> Documentation interne ###
+instructions.md
+###< Documentation interne ###

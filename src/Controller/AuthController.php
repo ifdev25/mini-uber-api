@@ -5,6 +5,7 @@
 namespace App\Controller;
 
 use App\Entity\User;
+use App\Service\EmailService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -19,7 +20,8 @@ class AuthController extends AbstractController
     public function __construct(
         private EntityManagerInterface $em,
         private UserPasswordHasherInterface $passwordHasher,
-        private JWTTokenManagerInterface $jwtManager
+        private JWTTokenManagerInterface $jwtManager,
+        private EmailService $emailService
     ) {}
 
     #[Route('/register', methods: ['POST'])]
@@ -37,18 +39,33 @@ class AuthController extends AbstractController
         $hashedPassword = $this->passwordHasher->hashPassword($user, $data['password']);
         $user->setPassword($hashedPassword);
 
+        // Generate verification token
+        $verificationToken = bin2hex(random_bytes(32));
+        $user->setVerificationToken($verificationToken);
+        $user->setVerificationTokenExpiresAt(new \DateTimeImmutable('+24 hours'));
+        $user->setIsVerified(false);
+
         $this->em->persist($user);
         $this->em->flush();
+
+        // Send verification email
+        $this->emailService->sendVerificationEmail(
+            $user->getEmail(),
+            $verificationToken,
+            $user->getFirstname() . ' ' . $user->getLastname()
+        );
 
         $token = $this->jwtManager->create($user);
 
         return new JsonResponse([
+            'message' => 'Inscription réussie. Veuillez vérifier votre email pour activer votre compte.',
             'user' => [
                 'id' => $user->getId(),
                 'email' => $user->getEmail(),
                 'firstName' => $user->getFirstname(),
                 'lastName' => $user->getLastname(),
-                'userType' => $user->getUsertype()
+                'userType' => $user->getUsertype(),
+                'isVerified' => $user->isVerified()
             ],
             'token' => $token
         ], 201);
@@ -66,7 +83,7 @@ class AuthController extends AbstractController
     public function me(): JsonResponse
     {
         $user = $this->getUser();
-        
+
         if (!$user) {
             return new JsonResponse(['error' => 'Not authenticated'], 401);
         }
@@ -80,12 +97,98 @@ class AuthController extends AbstractController
             'userType' => $user->getUsertype(),
             'rating' => $user->getRating(),
             'totalRides' => $user->getTotalRides(),
+            'isVerified' => $user->isVerified(),
+            'createdAt' => $user->getCreatedAt()?->format('c'),
             'driverProfile' => $user->getDriver() ? [
-                'vehicleModel' => $user->getDriver()->getVehiculeModel(),
-                'vehicleColor' => $user->getDriver()->getVehiculeColor(),
-                'vehicleType' => $user->getDriver()->getVehiculeType(),
-                'isAvailable' => $user->getDriver()->isAvailable()
+                'id' => $user->getDriver()->getId(),
+                'vehicleModel' => $user->getDriver()->getVehicleModel(),
+                'vehicleColor' => $user->getDriver()->getVehicleColor(),
+                'vehicleType' => $user->getDriver()->getVehicleType(),
+                'isAvailable' => $user->getDriver()->isAvailable(),
+                'currentLatitude' => $user->getDriver()->getCurrentLatitude(),
+                'currentLongitude' => $user->getDriver()->getCurrentLongitude()
             ] : null
         ]);
+    }
+
+    #[Route('/verify-email', methods: ['POST'])]
+    public function verifyEmail(Request $request): JsonResponse
+    {
+        $data = json_decode($request->getContent(), true);
+        $token = $data['token'] ?? null;
+
+        if (!$token) {
+            return new JsonResponse(['error' => 'Token manquant'], 400);
+        }
+
+        // Find user by verification token
+        $user = $this->em->getRepository(User::class)->findOneBy([
+            'verificationToken' => $token
+        ]);
+
+        if (!$user) {
+            return new JsonResponse(['error' => 'Token invalide'], 400);
+        }
+
+        // Check if token has expired
+        $now = new \DateTimeImmutable();
+        if ($user->getVerificationTokenExpiresAt() && $user->getVerificationTokenExpiresAt() < $now) {
+            return new JsonResponse(['error' => 'Le token a expiré'], 400);
+        }
+
+        // Verify the user
+        $user->setIsVerified(true);
+        $user->setVerificationToken(null);
+        $user->setVerificationTokenExpiresAt(null);
+
+        $this->em->flush();
+
+        return new JsonResponse([
+            'message' => 'Email vérifié avec succès',
+            'user' => [
+                'id' => $user->getId(),
+                'email' => $user->getEmail(),
+                'isVerified' => $user->isVerified()
+            ]
+        ], 200);
+    }
+
+    #[Route('/resend-verification', methods: ['POST'])]
+    public function resendVerification(Request $request): JsonResponse
+    {
+        $data = json_decode($request->getContent(), true);
+        $email = $data['email'] ?? null;
+
+        if (!$email) {
+            return new JsonResponse(['error' => 'Email manquant'], 400);
+        }
+
+        $user = $this->em->getRepository(User::class)->findOneBy(['email' => $email]);
+
+        if (!$user) {
+            return new JsonResponse(['error' => 'Utilisateur non trouvé'], 404);
+        }
+
+        if ($user->isVerified()) {
+            return new JsonResponse(['error' => 'Email déjà vérifié'], 400);
+        }
+
+        // Generate new verification token
+        $token = bin2hex(random_bytes(32));
+        $user->setVerificationToken($token);
+        $user->setVerificationTokenExpiresAt(new \DateTimeImmutable('+24 hours'));
+
+        $this->em->flush();
+
+        // Send verification email
+        $this->emailService->sendVerificationEmail(
+            $user->getEmail(),
+            $token,
+            $user->getFirstname() . ' ' . $user->getLastname()
+        );
+
+        return new JsonResponse([
+            'message' => 'Email de vérification renvoyé'
+        ], 200);
     }
 }

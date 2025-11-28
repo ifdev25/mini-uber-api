@@ -30,7 +30,7 @@ class RideProcessor implements ProcessorInterface
                 $data->getPickUpLongitude(),
                 $data->getDropoffLatitude(),
                 $data->getDropoffLongitude(),
-                $data->getVehiculeType() ?? 'standard'
+                $data->getVehicleType() ?? 'standard'
             );
 
             $data->setEstimatedDistance($estimation['distance']);

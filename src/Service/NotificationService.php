@@ -26,7 +26,7 @@ class NotificationService
                 'dropoffAddress' => $ride->getDropoffAddress(),
                 'estimatedPrice' => $ride->getEstimatedPrice(),
                 'estimatedDistance' => $ride->getEstimatedDistance(),
-                'vehiculeType' => $ride->getVehiculeType(),
+                'vehicleType' => $ride->getVehicleType(),
                 'passenger' => [
                     'name' => $ride->getPassenger()->getFirstname() . ' ' . $ride->getPassenger()->getLastname(),
                     'rating' => $ride->getPassenger()->getRating()
@@ -56,9 +56,9 @@ class NotificationService
                     'rating' => $ride->getDriver()->getRating(),
                     'phone' => $ride->getDriver()->getPhone(),
                     'vehicle' => [
-                        'model' => $ride->getDriver()->getDriver()->getVehiculeModel(),
-                        'color' => $ride->getDriver()->getDriver()->getVehiculeColor(),
-                        'type' => $ride->getDriver()->getDriver()->getVehiculeType()
+                        'model' => $ride->getDriver()->getDriver()->getVehicleModel(),
+                        'color' => $ride->getDriver()->getDriver()->getVehicleColor(),
+                        'type' => $ride->getDriver()->getDriver()->getVehicleType()
                     ]
                 ]
             ]

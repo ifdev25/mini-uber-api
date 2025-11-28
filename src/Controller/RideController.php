@@ -71,7 +71,7 @@ class RideController extends AbstractController
         $ride->setDropoffLatitude($data['dropoffLat']);
         $ride->setDropoffLongitude($data['dropoffLng']);
         $ride->setDropoffAddress($data['dropoffAddress']);
-        $ride->setVehiculeType($data['vehicleType'] ?? 'standard');
+        $ride->setVehicleType($data['vehicleType'] ?? 'standard');
 
         $estimation = $this->pricingService->calculateEstimate(
             $data['pickupLat'],
@@ -136,11 +136,11 @@ class RideController extends AbstractController
         }
 
         // Vérifier que le type de véhicule du chauffeur correspond
-        if ($driver->getDriver()->getVehiculeType() !== $ride->getVehiculeType()) {
+        if ($driver->getDriver()->getVehicleType() !== $ride->getVehicleType()) {
             return new JsonResponse([
                 'error' => 'Vehicle type mismatch',
-                'required' => $ride->getVehiculeType(),
-                'driver_has' => $driver->getDriver()->getVehiculeType()
+                'required' => $ride->getVehicleType(),
+                'driver_has' => $driver->getDriver()->getVehicleType()
             ], 400);
         }
 
@@ -162,7 +162,7 @@ class RideController extends AbstractController
             'driver' => [
                 'name' => $driver->getFirstname() . ' ' . $driver->getLastname(),
                 'rating' => $driver->getRating(),
-                'vehicle' => $driver->getDriver()->getVehiculeModel()
+                'vehicle' => $driver->getDriver()->getVehicleModel()
             ]
         ]);
     }

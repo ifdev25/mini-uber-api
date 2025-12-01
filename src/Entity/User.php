@@ -26,7 +26,7 @@ use Symfony\Component\Security\Core\User\UserInterface;
 #[ORM\Entity(repositoryClass: UserRepository::class)]
 #[ORM\Table(name: '`user`')]
 #[ApiResource(
-    normalizationContext: ['groups' => ['user:read']],
+    normalizationContext: ['groups' => ['user:read'], 'enable_max_depth' => true],
     denormalizationContext: ['groups' => ['user:write']],
     processor: \App\State\UserPasswordHashProcessor::class,
     operations: [
@@ -54,7 +54,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     private ?int $id = null;
 
     #[ORM\Column(name: 'email', type: 'string', length: 180)]
-    #[Groups(['user:read', 'user:write'])]
+    #[Groups(['user:read', 'user:write', 'driver:read', 'ride:read', 'rating:read'])]
     #[Assert\NotBlank]
     #[Assert\Email]
     private ?string $email = null;
@@ -80,12 +80,12 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     private ?string $lastName = null;
 
     #[ORM\Column(name: 'phone', type: 'string', length: 255)]
-    #[Groups(['user:read', 'user:write'])]
+    #[Groups(['user:read', 'user:write', 'rating:read'])]
     #[Assert\NotBlank]
     private ?string $phone = null;
 
     #[ORM\Column(name: 'usertype', type: 'string', length: 20)]
-    #[Groups(['user:read', 'user:write'])]
+    #[Groups(['user:read', 'user:write', 'rating:read'])]
     #[Assert\Choice(choices: ['passenger', 'driver'])]
     private ?string $userType = null;
 
@@ -94,11 +94,11 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     private ?float $rating = null;
 
     #[ORM\Column(name: 'totalrides', type: 'integer', nullable: true)]
-    #[Groups(['user:read'])]
+    #[Groups(['user:read', 'rating:read'])]
     private ?int $totalRides = null;
 
     #[ORM\Column(name: 'profilepicture', type: 'string', length: 255, nullable: true)]
-    #[Groups(['user:read', 'user:write'])]
+    #[Groups(['user:read', 'user:write', 'rating:read'])]
     private ?string $profilePicture = null;
 
     #[ORM\Column(name: 'createdat', type: 'datetime_immutable')]

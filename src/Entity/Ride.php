@@ -22,7 +22,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: RideRepository::class)]
 #[ApiResource(
-    normalizationContext: ['groups' => ['ride:read']],
+    normalizationContext: ['groups' => ['ride:read'], 'enable_max_depth' => true],
     denormalizationContext: ['groups' => ['ride:write']],
     processor: \App\State\RideProcessor::class,
     operations: [

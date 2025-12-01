@@ -12,11 +12,12 @@ use App\Repository\RatingRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
+use Symfony\Component\Serializer\Annotation\MaxDepth;
 use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: RatingRepository::class)]
 #[ApiResource(
-    normalizationContext: ['groups' => ['rating:read']],
+    normalizationContext: ['groups' => ['rating:read'], 'enable_max_depth' => true],
     denormalizationContext: ['groups' => ['rating:write']],
     operations: [
         new Get(),
@@ -37,6 +38,7 @@ class Rating
     #[ORM\ManyToOne(inversedBy: 'ratings')]
     #[ORM\JoinColumn(nullable: false)]
     #[Groups(['rating:read', 'rating:write'])]
+    #[MaxDepth(1)]
     #[Assert\NotBlank]
     private ?Ride $ride = null;
 
@@ -44,6 +46,7 @@ class Rating
     #[ORM\ManyToOne(inversedBy: 'ratingsGiven')]
     #[ORM\JoinColumn(nullable: false)]
     #[Groups(['rating:read', 'rating:write'])]
+    #[MaxDepth(1)]
     #[Assert\NotBlank]
     private ?User $rater = null;
 
@@ -51,6 +54,7 @@ class Rating
     #[ORM\ManyToOne(inversedBy: 'ratingsReceived')]
     #[ORM\JoinColumn(nullable: false)]
     #[Groups(['rating:read', 'rating:write'])]
+    #[MaxDepth(1)]
     #[Assert\NotBlank]
     private ?User $rated = null;
 

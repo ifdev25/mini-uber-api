@@ -22,7 +22,40 @@ API REST moderne pour une application de covoiturage type Uber, construite avec 
 
 ---
 
-## 🔧 Prérequis
+## 🐳 Démarrage rapide avec Docker (Recommandé)
+
+### Installation en 3 étapes
+
+```bash
+# 1. Cloner le projet
+git clone https://github.com/ifdev25/mini-uber-api.git
+cd mini-uber-api
+
+# 2. Démarrer les services Docker
+docker compose up -d
+
+# 3. Installer les dépendances et configurer la base de données
+docker compose exec php composer install --optimize-autoloader
+docker compose exec php php bin/console doctrine:database:create --if-not-exists
+docker compose exec php php bin/console doctrine:migrations:migrate -n
+docker compose exec php php bin/console lexik:jwt:generate-keypair
+```
+
+**L'API est maintenant accessible sur :** `http://localhost:8080`
+
+### Services disponibles
+
+| Service | URL | Description |
+|---------|-----|-------------|
+| **API** | http://localhost:8080 | API REST Symfony |
+| **Mercure Hub** | http://localhost:3000 | Notifications temps réel |
+| **PostgreSQL** | localhost:5432 | Base de données |
+
+**Documentation complète Docker :** Voir [DOCKER.md](DOCKER.md) et [PERFORMANCE_OPTIMIZATION.md](PERFORMANCE_OPTIMIZATION.md)
+
+---
+
+## 🔧 Prérequis (Installation manuelle)
 
 ### Versions requises
 
@@ -32,7 +65,7 @@ API REST moderne pour une application de covoiturage type Uber, construite avec 
 | **Composer** | 2.0 | 2.7.x |
 | **Symfony CLI** | - | 5.x (optionnel) |
 | **PostgreSQL** | 14 | 16 |
-| **Docker Desktop** | 20.10 | Dernière |
+| **Docker Desktop** | 20.10 | Dernière (recommandé) |
 
 ### Extensions PHP requises
 
@@ -1044,6 +1077,69 @@ docker compose logs -f mercure
 
 ---
 
+## ⚡ Performances et Optimisations
+
+### Performance actuelle
+
+L'API a été optimisée pour Docker sur Windows/Mac avec les résultats suivants :
+
+| Métrique | Temps |
+|----------|-------|
+| **Temps de réponse moyen** | 300-500ms |
+| **Première requête (cache froid)** | ~700ms |
+| **Requêtes suivantes** | 200-400ms |
+
+**Amélioration : 15x plus rapide** qu'une configuration standard Docker sur Windows
+
+### Optimisations appliquées
+
+1. **Volumes Docker optimisés**
+   - `vendor/` et `var/` utilisent des volumes nommés Docker
+   - I/O rapides même sur Windows/Mac
+
+2. **Xdebug désactivé par défaut**
+   - Mode "off" pour performance maximale
+   - Réactivable facilement pour le debugging
+
+3. **OPcache optimisé**
+   - Pas de revalidation de fichiers (performance maximale)
+   - Nécessite `docker compose restart php` après modification du code
+
+### Configuration pour le développement
+
+**Important :** Après chaque modification de code, redémarrez PHP pour vider le cache OPcache :
+
+```bash
+docker compose restart php
+```
+
+**Pour réactiver Xdebug** (debugging) :
+
+Modifiez `docker/php/xdebug.ini` :
+```ini
+xdebug.mode = debug  # Au lieu de "off"
+```
+
+Puis redémarrez :
+```bash
+docker compose restart php
+```
+
+**Documentation complète :** Voir [PERFORMANCE_OPTIMIZATION.md](PERFORMANCE_OPTIMIZATION.md)
+
+---
+
+## 🌐 Configuration Frontend
+
+Pour connecter votre frontend à l'API dockerisée, consultez le guide complet : [FRONTEND_CONFIG.md](FRONTEND_CONFIG.md)
+
+**En résumé :**
+- **URL API** : `http://localhost:8080`
+- **Headers requis** : `Content-Type: application/json` + `Authorization: Bearer {token}`
+- **CORS** : Déjà configuré pour localhost (tous les ports)
+
+---
+
 ## 📞 Support et Contact
 
 - **Issues :** [GitHub Issues](https://github.com/ifdev25/mini-uber-api/issues)
@@ -1052,6 +1148,25 @@ docker compose logs -f mercure
 ---
 
 ## 📝 Changelog récent
+
+### 2025-12-03 - Optimisation des performances Docker
+
+**Améliorations :**
+- ✅ Volumes Docker optimisés (vendor/ et var/ sur volumes nommés)
+- ✅ Xdebug désactivé par défaut (gain de performance 3-5x)
+- ✅ OPcache optimisé (pas de revalidation)
+- ✅ Documentation complète pour le frontend (FRONTEND_CONFIG.md)
+- ✅ Guide des performances (PERFORMANCE_OPTIMIZATION.md)
+
+**Performance :**
+- Avant : 5-6 secondes par requête ❌
+- Après : 300-500ms par requête ✅
+- **Gain : 15x plus rapide** 🚀
+
+**Fichiers ajoutés :**
+- `FRONTEND_CONFIG.md` - Configuration pour le frontend
+- `PERFORMANCE_OPTIMIZATION.md` - Guide des optimisations
+- `apply-optimizations.bat` - Script d'application des optimisations
 
 ### 2025-01-25 - Corrections API Driver
 

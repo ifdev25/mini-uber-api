@@ -1,0 +1,51 @@
+# Git files
+.git
+.gitignore
+.gitattributes
+
+# Docker files
+Dockerfile
+docker-compose*.yml
+compose*.yaml
+.dockerignore
+
+# Documentation
+*.md
+docs/
+
+# Tests
+tests/
+phpunit.xml.dist
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+
+# IDE
+.idea/
+.vscode/
+.claude/
+*.swp
+*.swo
+*~
+
+# Dependencies
+vendor/
+node_modules/
+
+# Environment
+.env.local
+.env.local.php
+.env.*.local
+
+# Cache and logs
+var/cache/
+var/log/
+var/sessions/
+
+# Build artifacts
+public/bundles/
+
+# OS files
+.DS_Store
+Thumbs.db

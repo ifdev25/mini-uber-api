@@ -29,6 +29,49 @@ class AuthController extends AbstractController
     {
         $data = json_decode($request->getContent(), true);
 
+        // Validation des données requises
+        $requiredFields = ['email', 'password', 'firstName', 'lastName', 'phone'];
+        $errors = [];
+
+        foreach ($requiredFields as $field) {
+            if (empty($data[$field])) {
+                $errors[$field] = "Le champ $field est requis.";
+            }
+        }
+
+        // Validation de l'email
+        if (!empty($data['email']) && !filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
+            $errors['email'] = "L'email n'est pas valide.";
+        }
+
+        // Validation du mot de passe
+        if (!empty($data['password']) && strlen($data['password']) < 6) {
+            $errors['password'] = "Le mot de passe doit contenir au moins 6 caractères.";
+        }
+
+        // Validation du téléphone
+        if (!empty($data['phone']) && !preg_match('/^\+?[0-9]{10,15}$/', $data['phone'])) {
+            $errors['phone'] = "Le numéro de téléphone n'est pas valide.";
+        }
+
+        if (!empty($errors)) {
+            return new JsonResponse([
+                'error' => true,
+                'message' => 'Erreur de validation',
+                'violations' => $errors
+            ], 422);
+        }
+
+        // Vérifier si l'email existe déjà
+        $existingUser = $this->em->getRepository(User::class)->findOneBy(['email' => $data['email']]);
+        if ($existingUser) {
+            return new JsonResponse([
+                'error' => true,
+                'message' => 'Un compte avec cet email existe déjà.',
+                'code' => 409
+            ], 409);
+        }
+
         $user = new User();
         $user->setEmail($data['email']);
         $user->setFirstname($data['firstName']);
@@ -52,7 +95,7 @@ class AuthController extends AbstractController
         $this->emailService->sendVerificationEmail(
             $user->getEmail(),
             $verificationToken,
-            $user->getFirstname() . ' ' . $user->getLastname()
+            $user->getFullName()
         );
 
         $token = $this->jwtManager->create($user);
@@ -184,7 +227,7 @@ class AuthController extends AbstractController
         $this->emailService->sendVerificationEmail(
             $user->getEmail(),
             $token,
-            $user->getFirstname() . ' ' . $user->getLastname()
+            $user->getFullName()
         );
 
         return new JsonResponse([

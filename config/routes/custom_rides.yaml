@@ -1,0 +1,7 @@
+# Routes personnalisées pour les courses
+# Utilise un chemin différent pour éviter les conflits avec API Platform
+
+ride_history:
+    path: /api/my/rides
+    controller: App\Controller\RideController::getHistory
+    methods: [GET]

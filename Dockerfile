@@ -67,6 +67,9 @@ CMD ["php-fpm"]
 # Production stage
 FROM base AS prod
 
+# Override OPcache config for production (disable timestamp validation)
+COPY docker/php/opcache.prod.ini /usr/local/etc/php/conf.d/opcache.ini
+
 # Copy composer files first for better caching
 COPY composer.json composer.lock symfony.lock ./
 

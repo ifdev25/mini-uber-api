@@ -20,11 +20,16 @@ use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
 use Symfony\Component\Serializer\Annotation\MaxDepth;
 use Symfony\Component\Validator\Constraints as Assert;
+use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
 
 #[ORM\Entity(repositoryClass: UserRepository::class)]
 #[ORM\Table(name: '`user`')]
+#[UniqueEntity(
+    fields: ['email'],
+    message: 'Un compte avec cet email existe déjà.'
+)]
 #[ApiResource(
     normalizationContext: ['groups' => ['user:read'], 'enable_max_depth' => true],
     denormalizationContext: ['groups' => ['user:write']],
@@ -53,7 +58,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[Groups(['user:read', 'driver:read', 'ride:read'])]
     private ?int $id = null;
 
-    #[ORM\Column(name: 'email', type: 'string', length: 180)]
+    #[ORM\Column(name: 'email', type: 'string', length: 180, unique: true)]
     #[Groups(['user:read', 'user:write', 'driver:read', 'ride:read', 'rating:read'])]
     #[Assert\NotBlank]
     #[Assert\Email]
@@ -125,6 +130,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
      */
     #[ORM\OneToMany(targetEntity: Ride::class, mappedBy: 'driver', orphanRemoval: true)]
     #[Groups(['user:read'])]
+    #[MaxDepth(2)]
     private Collection $ridesAsDriver;
 
     /**
@@ -132,6 +138,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
      */
     #[ORM\OneToMany(targetEntity: Ride::class, mappedBy: 'passenger')]
     #[Groups(['user:read'])]
+    #[MaxDepth(2)]
     private Collection $ridesAsPassenger;
 
     /**
@@ -362,7 +369,10 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     /**
      * @return Collection<int, Rating>
      */
-    public function getRatingsGiven(): Collection { return $this->ratingsGiven;}
+    public function getRatingsGiven(): Collection
+    {
+        return $this->ratingsGiven;
+    }
 
     public function addRatingGiven(Rating $rating): static
     {
@@ -388,7 +398,10 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     /**
      * @return Collection<int, Rating>
      */
-    public function getRatingsReceived(): Collection { return $this->ratingsReceived;}
+    public function getRatingsReceived(): Collection
+    {
+        return $this->ratingsReceived;
+    }
 
     public function addRatingReceived(Rating $rating): static
     {
@@ -462,47 +475,14 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this;
     }
 
-    public function addRatingsGiven(Rating $ratingsGiven): static
+    /**
+     * Get user's full name
+     *
+     * @return string The user's full name (firstName + lastName)
+     */
+    #[Groups(['user:read', 'driver:read', 'ride:read'])]
+    public function getFullName(): string
     {
-        if (!$this->ratingsGiven->contains($ratingsGiven)) {
-            $this->ratingsGiven->add($ratingsGiven);
-            $ratingsGiven->setRater($this);
-        }
-
-        return $this;
-    }
-
-    public function removeRatingsGiven(Rating $ratingsGiven): static
-    {
-        if ($this->ratingsGiven->removeElement($ratingsGiven)) {
-            // set the owning side to null (unless already changed)
-            if ($ratingsGiven->getRater() === $this) {
-                $ratingsGiven->setRater(null);
-            }
-        }
-
-        return $this;
-    }
-
-    public function addRatingsReceived(Rating $ratingsReceived): static
-    {
-        if (!$this->ratingsReceived->contains($ratingsReceived)) {
-            $this->ratingsReceived->add($ratingsReceived);
-            $ratingsReceived->setRated($this);
-        }
-
-        return $this;
-    }
-
-    public function removeRatingsReceived(Rating $ratingsReceived): static
-    {
-        if ($this->ratingsReceived->removeElement($ratingsReceived)) {
-            // set the owning side to null (unless already changed)
-            if ($ratingsReceived->getRated() === $this) {
-                $ratingsReceived->setRated(null);
-            }
-        }
-
-        return $this;
+        return $this->firstName . ' ' . $this->lastName;
     }
 }

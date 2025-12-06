@@ -4,7 +4,9 @@ when@dev:
 
     framework:
         profiler:
-            collect_serializer_data: true
+            # Disable expensive data collection for better performance
+            collect_serializer_data: false
+            only_exceptions: false
 
 when@test:
     framework:

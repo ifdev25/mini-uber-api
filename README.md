@@ -31,27 +31,55 @@ API REST moderne pour une application de covoiturage type Uber, construite avec 
 git clone https://github.com/ifdev25/mini-uber-api.git
 cd mini-uber-api
 
-# 2. Démarrer les services Docker
-docker compose up -d
+# 2. Configurer les variables d'environnement
+cp .env .env.local
+# Éditez .env.local si nécessaire (JWT passphrase, DATABASE_URL, etc.)
 
-# 3. Installer les dépendances et configurer la base de données
+# 3. Démarrer tous les services
+docker compose up -d --build
+
+# 4. Installer les dépendances et configurer
 docker compose exec php composer install --optimize-autoloader
 docker compose exec php php bin/console doctrine:database:create --if-not-exists
 docker compose exec php php bin/console doctrine:migrations:migrate -n
-docker compose exec php php bin/console lexik:jwt:generate-keypair
+docker compose exec php php bin/console lexik:jwt:generate-keypair --skip-if-exists
+docker compose exec php php bin/console doctrine:fixtures:load -n
+
+# 5. Vider les caches
+docker compose exec php php bin/console cache:clear
 ```
 
 **L'API est maintenant accessible sur :** `http://localhost:8080`
 
 ### Services disponibles
 
-| Service | URL | Description |
-|---------|-----|-------------|
-| **API** | http://localhost:8080 | API REST Symfony |
-| **Mercure Hub** | http://localhost:3000 | Notifications temps réel |
-| **PostgreSQL** | localhost:5432 | Base de données |
+| Service | URL | Port | Description |
+|---------|-----|------|-------------|
+| **API Symfony** | http://localhost:8080 | 8080 | API REST complète |
+| **PostgreSQL** | localhost:5432 | 5432 | Base de données |
+| **Mercure Hub** | http://localhost:3000 | 3000 | Notifications temps réel SSE |
+| **API Documentation** | http://localhost:8080/api | 8080 | Swagger UI interactive |
 
 **Documentation complète Docker :** Voir [DOCKER.md](DOCKER.md) et [PERFORMANCE_OPTIMIZATION.md](PERFORMANCE_OPTIMIZATION.md)
+
+### Commandes Docker utiles
+
+```bash
+# Voir les logs
+docker compose logs -f php        # Logs PHP/Symfony
+docker compose logs -f database   # Logs PostgreSQL
+docker compose logs -f mercure    # Logs Mercure
+
+# Redémarrer un service
+docker compose restart php
+
+# Arrêter tous les services
+docker compose down
+
+# Reconstruire les images
+docker compose build --no-cache
+docker compose up -d
+```
 
 ---
 
@@ -1149,6 +1177,30 @@ Pour connecter votre frontend à l'API dockerisée, consultez le guide complet :
 
 ## 📝 Changelog récent
 
+### 2025-12-07 - Refactoring majeur et nettoyage du code
+
+**Améliorations :**
+- ✅ **Correction de bugs critiques** (méthodes dupliquées dans User.php, getDriverProfile inexistant)
+- ✅ **Ajout de getFullName()** - nouvelle méthode utilitaire dans User.php
+- ✅ **Refactorisation complète** des services pour utiliser getFullName()
+- ✅ **Nettoyage de la documentation** - suppression des fichiers .md obsolètes
+- ✅ **README mis à jour** avec les commandes Docker complètes
+
+**Bugs corrigés :**
+- Méthodes dupliquées supprimées (addRatingsGiven, removeRatingsGiven, etc.)
+- Correction de getDriverProfile() → getDriver() dans DriverController
+- Formatage cohérent du code
+
+**Performance :**
+- Aucun breaking change pour le frontend
+- Tous les endpoints restent compatibles
+- Code plus maintenable et lisible
+
+**Documentation :**
+- `REFACTORING_REPORT.md` - Rapport détaillé des changements
+- Fichiers obsolètes supprimés (BACKEND_ISSUES, FIX-*, SUGGESTIONS, etc.)
+- README simplifié et orienté Docker
+
 ### 2025-12-03 - Optimisation des performances Docker
 
 **Améliorations :**
@@ -1156,31 +1208,11 @@ Pour connecter votre frontend à l'API dockerisée, consultez le guide complet :
 - ✅ Xdebug désactivé par défaut (gain de performance 3-5x)
 - ✅ OPcache optimisé (pas de revalidation)
 - ✅ Documentation complète pour le frontend (FRONTEND_CONFIG.md)
-- ✅ Guide des performances (PERFORMANCE_OPTIMIZATION.md)
 
 **Performance :**
 - Avant : 5-6 secondes par requête ❌
 - Après : 300-500ms par requête ✅
 - **Gain : 15x plus rapide** 🚀
-
-**Fichiers ajoutés :**
-- `FRONTEND_CONFIG.md` - Configuration pour le frontend
-- `PERFORMANCE_OPTIMIZATION.md` - Guide des optimisations
-- `apply-optimizations.bat` - Script d'application des optimisations
-
-### 2025-01-25 - Corrections API Driver
-
-**Problèmes corrigés :**
-- ✅ Exposition du champ `isAvailable` dans le contexte `ride:read` (Driver.php:110)
-- ✅ Exposition du champ `rating` dans les contextes `driver:read` et `ride:read` (User.php:93)
-
-**Impact :**
-- Les réponses API incluent maintenant la disponibilité des chauffeurs dans toutes les requêtes
-- Le rating des chauffeurs est visible lors de la récupération des courses et des profils drivers
-
-**Fichiers modifiés :**
-- `src/Entity/Driver.php` - Ajout du groupe `ride:read` à `isAvailable`
-- `src/Entity/User.php` - Ajout des groupes `driver:read` et `ride:read` à `rating`
 
 ---
 

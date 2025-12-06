@@ -28,7 +28,7 @@ class NotificationService
                 'estimatedDistance' => $ride->getEstimatedDistance(),
                 'vehicleType' => $ride->getVehicleType(),
                 'passenger' => [
-                    'name' => $ride->getPassenger()->getFirstname() . ' ' . $ride->getPassenger()->getLastname(),
+                    'name' => $ride->getPassenger()->getFullName(),
                     'rating' => $ride->getPassenger()->getRating()
                 ]
             ]
@@ -52,7 +52,7 @@ class NotificationService
                 'id' => $ride->getId(),
                 'status' => $ride->getStatus(),
                 'driver' => [
-                    'name' => $ride->getDriver()->getFirstname() . ' ' . $ride->getDriver()->getLastname(),
+                    'name' => $ride->getDriver()->getFullName(),
                     'rating' => $ride->getDriver()->getRating(),
                     'phone' => $ride->getDriver()->getPhone(),
                     'vehicle' => [
@@ -98,6 +98,12 @@ class NotificationService
                 'status' => $ride->getStatus(),
                 'finalPrice' => $ride->getFinalPrice(),
                 'completedAt' => $ride->getCompletedAt()?->format('Y-m-d H:i:s')
+            ],
+            // Information pour la redirection côté frontend
+            'action' => [
+                'type' => 'redirect',
+                'route' => '/rides/history', // Route pour l'historique des courses
+                'userType' => 'passenger'
             ]
         ];
 

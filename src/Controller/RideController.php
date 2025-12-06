@@ -160,7 +160,7 @@ class RideController extends AbstractController
             'id' => $ride->getId(),
             'status' => $ride->getStatus(),
             'driver' => [
-                'name' => $driver->getFirstname() . ' ' . $driver->getLastname(),
+                'name' => $driver->getFullName(),
                 'rating' => $driver->getRating(),
                 'vehicle' => $driver->getDriver()->getVehicleModel()
             ]
@@ -223,20 +223,66 @@ class RideController extends AbstractController
             return new JsonResponse(['error' => 'Unauthorized'], 401);
         }
 
-        $rides = $user->getUsertype() === 'driver'
+        $isDriver = $user->getUserType() === 'driver';
+        $rides = $isDriver
             ? $user->getRidesAsDriver()
             : $user->getRidesAsPassenger();
 
         $history = [];
         foreach ($rides as $ride) {
-            $history[] = [
+            $rideData = [
                 'id' => $ride->getId(),
                 'status' => $ride->getStatus(),
                 'pickupAddress' => $ride->getPickUpAddress(),
                 'dropoffAddress' => $ride->getDropoffAddress(),
+                'pickupLatitude' => $ride->getPickUpLatitude(),
+                'pickupLongitude' => $ride->getPickUpLongitude(),
+                'dropoffLatitude' => $ride->getDropoffLatitude(),
+                'dropoffLongitude' => $ride->getDropoffLongitude(),
+                'estimatedPrice' => $ride->getEstimatedPrice(),
+                'finalPrice' => $ride->getFinalPrice(),
                 'price' => $ride->getFinalPrice() ?? $ride->getEstimatedPrice(),
-                'date' => $ride->getCreatedAt()->format('Y-m-d H:i:s')
+                'estimatedDistance' => $ride->getEstimatedDistance(),
+                'estimatedDuration' => $ride->getEstimatedDuration(),
+                'vehicleType' => $ride->getVehicleType(),
+                'createdAt' => $ride->getCreatedAt()?->format('Y-m-d H:i:s'),
+                'acceptedAt' => $ride->getAcceptedAt()?->format('Y-m-d H:i:s'),
+                'startedAt' => $ride->getStartedAt()?->format('Y-m-d H:i:s'),
+                'completedAt' => $ride->getCompletedAt()?->format('Y-m-d H:i:s'),
+                'date' => $ride->getCreatedAt()?->format('Y-m-d H:i:s')
             ];
+
+            // Ajouter les informations du chauffeur si l'utilisateur est passager
+            if (!$isDriver && $ride->getDriver()) {
+                $driver = $ride->getDriver();
+                $driverProfile = $driver->getDriver();
+
+                $rideData['driver'] = [
+                    'id' => $driver->getId(),
+                    'firstName' => $driver->getFirstname(),
+                    'lastName' => $driver->getLastname(),
+                    'rating' => $driver->getRating(),
+                    'phone' => $driver->getPhone(),
+                    'vehicleModel' => $driverProfile?->getVehicleModel(),
+                    'vehicleColor' => $driverProfile?->getVehicleColor(),
+                    'vehicleType' => $driverProfile?->getVehicleType()
+                ];
+            }
+
+            // Ajouter les informations du passager si l'utilisateur est chauffeur
+            if ($isDriver && $ride->getPassenger()) {
+                $passenger = $ride->getPassenger();
+
+                $rideData['passenger'] = [
+                    'id' => $passenger->getId(),
+                    'firstName' => $passenger->getFirstname(),
+                    'lastName' => $passenger->getLastname(),
+                    'rating' => $passenger->getRating(),
+                    'phone' => $passenger->getPhone()
+                ];
+            }
+
+            $history[] = $rideData;
         }
 
         return new JsonResponse($history);

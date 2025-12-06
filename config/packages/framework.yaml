@@ -9,6 +9,9 @@ framework:
         default_context:
             enable_max_depth: true
 
+    # Performance: Restrict enabled locales to only those used in the application
+    enabled_locales: ['fr', 'en']
+
     #esi: true
     #fragments: true
 

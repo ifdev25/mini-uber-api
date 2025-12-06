@@ -3,14 +3,8 @@
 // src/Controller/DriverController.php
 
 /**
- * @deprecated Ce controller est déprécié. Utilisez les State Processors API Platform à la place.
- * Les endpoints ont été migrés :
- * - PATCH /api/drivers/location -> PATCH /api/drivers/location (DriverLocationProcessor)
- * - PATCH /api/drivers/availability -> PATCH /api/drivers/availability (DriverAvailabilityProcessor)
- * - GET /api/drivers/available -> GET /api/drivers?isAvailable=true&isVerified=true
- *
- * Ce fichier sera supprimé dans une version future.
- * Voir API_ENDPOINTS.md pour la documentation complète.
+ * Controller for driver-specific endpoints
+ * Complements API Platform's automatic CRUD operations with custom business logic
  */
 
 namespace App\Controller;
@@ -55,7 +49,7 @@ class DriverController extends AbstractController
                 if ($distance <= $radius) {
                     $nearbyDrivers[] = [
                         'id' => $driver->getId(),
-                        'name' => $driver->getUser()->getFirstName(),
+                        'name' => $driver->getUser()->getFullName(),
                         'rating' => $driver->getUser()->getRating(),
                         'vehicle' => [
                             'model' => $driver->getVehicleModel(),
@@ -85,7 +79,7 @@ class DriverController extends AbstractController
             return new JsonResponse(['error' => 'Unauthorized'], 403);
         }
 
-        $driver = $user->getDriverProfile();
+        $driver = $user->getDriver();
         $driver->setCurrentLatitude($data['lat']);
         $driver->setCurrentLongitude($data['lng']);
 
@@ -104,13 +98,85 @@ class DriverController extends AbstractController
             return new JsonResponse(['error' => 'Unauthorized'], 403);
         }
 
-        $driver = $user->getDriverProfile();
+        $driver = $user->getDriver();
         $driver->setIsAvailable($data['isAvailable']);
 
         $this->em->flush();
 
         return new JsonResponse([
             'isAvailable' => $driver->isAvailable()
+        ]);
+    }
+
+    /**
+     * Get driver statistics
+     */
+    #[Route('/stats', methods: ['GET'])]
+    public function getStats(): JsonResponse
+    {
+        $user = $this->getUser();
+
+        if (!$user) {
+            return new JsonResponse(['error' => 'Not authenticated'], 401);
+        }
+
+        if ($user->getUserType() !== 'driver') {
+            return new JsonResponse(['error' => 'Not a driver'], 403);
+        }
+
+        $driver = $user->getDriver();
+
+        if (!$driver) {
+            return new JsonResponse(['error' => 'Driver profile not found'], 404);
+        }
+
+        // Get rides statistics for this driver
+        $completedRides = $this->em->createQueryBuilder()
+            ->select('COUNT(r.id)')
+            ->from('App\Entity\Ride', 'r')
+            ->where('r.driver = :driver')
+            ->andWhere('r.status = :status')
+            ->setParameter('driver', $driver)
+            ->setParameter('status', 'completed')
+            ->getQuery()
+            ->getSingleScalarResult();
+
+        $canceledRides = $this->em->createQueryBuilder()
+            ->select('COUNT(r.id)')
+            ->from('App\Entity\Ride', 'r')
+            ->where('r.driver = :driver')
+            ->andWhere('r.status = :status')
+            ->setParameter('driver', $driver)
+            ->setParameter('status', 'canceled')
+            ->getQuery()
+            ->getSingleScalarResult();
+
+        $totalEarnings = $this->em->createQueryBuilder()
+            ->select('SUM(r.finalPrice)')
+            ->from('App\Entity\Ride', 'r')
+            ->where('r.driver = :driver')
+            ->andWhere('r.status = :status')
+            ->setParameter('driver', $driver)
+            ->setParameter('status', 'completed')
+            ->getQuery()
+            ->getSingleScalarResult();
+
+        return new JsonResponse([
+            'driver' => [
+                'id' => $driver->getId(),
+                'isAvailable' => $driver->isAvailable(),
+                'isVerified' => $driver->isVerified(),
+                'vehicleModel' => $driver->getVehicleModel(),
+                'vehicleType' => $driver->getVehicleType(),
+                'vehicleColor' => $driver->getVehicleColor(),
+            ],
+            'stats' => [
+                'completedRides' => (int) $completedRides,
+                'canceledRides' => (int) $canceledRides,
+                'totalEarnings' => round((float) ($totalEarnings ?? 0), 2),
+                'averageRating' => $user->getRating(),
+                'totalRides' => $user->getTotalRides(),
+            ]
         ]);
     }
 

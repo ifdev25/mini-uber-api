@@ -16,6 +16,7 @@ use App\Repository\DriverRepository;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
 use Symfony\Component\Serializer\Annotation\MaxDepth;
+use Symfony\Component\Serializer\Annotation\SerializedName;
 use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: DriverRepository::class)]
@@ -41,9 +42,9 @@ use Symfony\Component\Validator\Constraints as Assert;
         new Patch(
             uriTemplate: '/drivers/availability',
             security: "is_granted('ROLE_USER')",
+            provider: \App\State\DriverAvailabilityProvider::class,
             processor: \App\State\DriverAvailabilityProcessor::class,
             denormalizationContext: ['groups' => ['driver:availability']],
-            read: false,
             description: 'Toggle driver availability'
         )
     ]
@@ -104,10 +105,12 @@ class Driver
 
     #[ORM\Column(name: 'isverified', type: 'boolean')]
     #[Groups(['driver:read'])]
+    #[SerializedName('isVerified')]
     private bool $isVerified = false;
 
     #[ORM\Column(name: 'isavailable', type: 'boolean')]
     #[Groups(['driver:read', 'driver:write', 'driver:availability', 'ride:read'])]
+    #[SerializedName('isAvailable')]
     private bool $isAvailable = false;
 
     public function getId(): ?int

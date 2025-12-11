@@ -704,7 +704,12 @@ GET /api/drivers?isAvailable=true&vehicleType=comfort
 
 **Endpoint:** `PATCH /api/drivers/availability`
 
-**Security:** Seul un driver authentifié peut modifier sa disponibilité
+**Description:** Permet à un chauffeur de basculer son statut de disponibilité pour recevoir de nouvelles courses. Cet endpoint met à jour uniquement le champ `isAvailable` du profil driver connecté.
+
+**Security:**
+- Requiert l'authentification (`ROLE_USER`)
+- L'utilisateur doit être de type `driver`
+- Le driver doit avoir un profil complet
 
 **Headers:**
 ```json
@@ -723,19 +728,41 @@ GET /api/drivers?isAvailable=true&vehicleType=comfort
 
 **Champs:**
 - `isAvailable` (boolean, required): Nouvelle disponibilité
+  - `true`: Le driver est disponible pour accepter des courses
+  - `false`: Le driver n'est pas disponible (ne recevra pas de nouvelles demandes)
 
 **Réponse succès (200):**
 ```json
 {
   "id": 1,
+  "user": {
+    "id": 5,
+    "firstName": "Jane",
+    "lastName": "Smith",
+    "email": "jane@example.com",
+    "rating": 4.8
+  },
+  "vehicleModel": "Toyota Prius",
+  "vehicleType": "comfort",
+  "vehicleColor": "Blanc",
+  "licenceNumber": "123456789",
+  "currentLatitude": 48.8566,
+  "currentLongitude": 2.3522,
+  "isVerified": true,
   "isAvailable": true,
-  "vehicleType": "comfort"
+  "verifiedAt": "2024-01-10T10:00:00+00:00"
 }
 ```
 
 **Erreurs possibles:**
-- `403` - L'utilisateur n'est pas un driver
-- `404` - Profil driver non trouvé
+- `401 Unauthorized` - Token invalide ou manquant
+- `403 Forbidden` - L'utilisateur n'est pas un driver ou n'a pas le rôle requis
+- `404 Not Found` - Profil driver non trouvé pour l'utilisateur connecté
+
+**Notes importantes:**
+- ⚠️ L'endpoint ne requiert PAS l'ID du driver dans l'URL - il utilise automatiquement le driver connecté
+- ✅ Le profil complet du driver est retourné dans la réponse
+- 💡 Utilisez cet endpoint pour implémenter un toggle "Disponible/Hors ligne" dans l'interface driver
 
 ---
 

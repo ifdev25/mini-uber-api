@@ -16,7 +16,8 @@
       "Bash(dir:*)",
       "Bash(dir /b:*)",
       "Bash(python -m json.tool:*)",
-      "Bash(timeout /t 3)"
+      "Bash(timeout /t 3)",
+      "Bash(docker exec:*)"
     ],
     "deny": [],
     "ask": []

@@ -26,8 +26,8 @@ class RideProcessor implements ProcessorInterface
         // If this is a new ride (POST operation), calculate estimates
         if (!$data->getId() && $operation->getMethod() === 'POST') {
             $estimation = $this->pricingService->calculateEstimate(
-                $data->getPickUpLatitude(),
-                $data->getPickUpLongitude(),
+                $data->getPickupLatitude(),
+                $data->getPickupLongitude(),
                 $data->getDropoffLatitude(),
                 $data->getDropoffLongitude(),
                 $data->getVehicleType() ?? 'standard'

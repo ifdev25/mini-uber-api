@@ -10,6 +10,7 @@
 namespace App\Controller;
 
 use App\Entity\Driver;
+use App\Service\GeoService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -19,7 +20,10 @@ use Symfony\Component\Routing\Annotation\Route;
 #[Route('/api/drivers')]
 class DriverController extends AbstractController
 {
-    public function __construct(private EntityManagerInterface $em) {}
+    public function __construct(
+        private EntityManagerInterface $em,
+        private GeoService $geoService
+    ) {}
 
     #[Route('/available', methods: ['GET'])]
     public function getAvailableDrivers(Request $request): JsonResponse
@@ -39,7 +43,7 @@ class DriverController extends AbstractController
         $nearbyDrivers = [];
         foreach ($drivers as $driver) {
             if ($driver->getCurrentLatitude() && $driver->getCurrentLongitude()) {
-                $distance = $this->calculateDistance(
+                $distance = $this->geoService->calculateDistance(
                     $lat,
                     $lng,
                     $driver->getCurrentLatitude(),
@@ -67,45 +71,6 @@ class DriverController extends AbstractController
         }
 
         return new JsonResponse($nearbyDrivers);
-    }
-
-    #[Route('/location', methods: ['PATCH'])]
-    public function updateLocation(Request $request): JsonResponse
-    {
-        $user = $this->getUser();
-        $data = json_decode($request->getContent(), true);
-
-        if (!$user || $user->getUserType() !== 'driver') {
-            return new JsonResponse(['error' => 'Unauthorized'], 403);
-        }
-
-        $driver = $user->getDriver();
-        $driver->setCurrentLatitude($data['lat']);
-        $driver->setCurrentLongitude($data['lng']);
-
-        $this->em->flush();
-
-        return new JsonResponse(['success' => true]);
-    }
-
-    #[Route('/availability', methods: ['PATCH'])]
-    public function toggleAvailability(Request $request): JsonResponse
-    {
-        $user = $this->getUser();
-        $data = json_decode($request->getContent(), true);
-
-        if (!$user || $user->getUserType() !== 'driver') {
-            return new JsonResponse(['error' => 'Unauthorized'], 403);
-        }
-
-        $driver = $user->getDriver();
-        $driver->setIsAvailable($data['isAvailable']);
-
-        $this->em->flush();
-
-        return new JsonResponse([
-            'isAvailable' => $driver->isAvailable()
-        ]);
     }
 
     /**
@@ -178,22 +143,5 @@ class DriverController extends AbstractController
                 'totalRides' => $user->getTotalRides(),
             ]
         ]);
-    }
-
-    private function calculateDistance(float $lat1, float $lng1, float $lat2, float $lng2): float
-    {
-        // Formule de Haversine
-        $earthRadius = 6371; // km
-
-        $dLat = deg2rad($lat2 - $lat1);
-        $dLng = deg2rad($lng2 - $lng1);
-
-        $a = sin($dLat / 2) * sin($dLat / 2) +
-            cos(deg2rad($lat1)) * cos(deg2rad($lat2)) *
-            sin($dLng / 2) * sin($dLng / 2);
-
-        $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
-
-        return $earthRadius * $c;
     }
 }

@@ -1,7 +1,5 @@
 <?php
 
-// src/Service/DriverMatchingService.php
-
 namespace App\Service;
 
 use App\Entity\Ride;
@@ -12,7 +10,8 @@ class DriverMatchingService
 {
     public function __construct(
         private EntityManagerInterface $em,
-        private NotificationService $notificationService
+        private NotificationService $notificationService,
+        private GeoService $geoService
     ) {}
 
     public function notifyNearbyDrivers(Ride $ride): void
@@ -30,9 +29,9 @@ class DriverMatchingService
         $nearbyDriverUsers = [];
         foreach ($drivers as $driver) {
             if ($driver->getCurrentLatitude() && $driver->getCurrentLongitude()) {
-                $distance = $this->calculateDistance(
-                    $ride->getPickUpLatitude(),
-                    $ride->getPickUpLongitude(),
+                $distance = $this->geoService->calculateDistance(
+                    $ride->getPickupLatitude(),
+                    $ride->getPickupLongitude(),
                     $driver->getCurrentLatitude(),
                     $driver->getCurrentLongitude()
                 );
@@ -48,17 +47,5 @@ class DriverMatchingService
         if (!empty($nearbyDriverUsers)) {
             $this->notificationService->notifyDriversAboutNewRide($ride, $nearbyDriverUsers);
         }
-    }
-
-    private function calculateDistance(float $lat1, float $lng1, float $lat2, float $lng2): float
-    {
-        $earthRadius = 6371;
-        $dLat = deg2rad($lat2 - $lat1);
-        $dLng = deg2rad($lng2 - $lng1);
-        $a = sin($dLat / 2) * sin($dLat / 2) +
-            cos(deg2rad($lat1)) * cos(deg2rad($lat2)) *
-            sin($dLng / 2) * sin($dLng / 2);
-        $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
-        return $earthRadius * $c;
     }
 }

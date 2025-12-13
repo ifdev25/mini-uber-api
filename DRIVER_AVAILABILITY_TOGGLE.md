@@ -10,9 +10,9 @@ Le backend propose **un endpoint unique** pour mettre à jour la disponibilité 
 
 | Endpoint | Méthode | URL | Type |
 |----------|---------|-----|------|
-| **Toggle Availability** | `PATCH` | `/api/drivers/availability` | API Platform (moderne) |
+| **Toggle Availability** | `PATCH` | `/api/driver/availability` | Controller Custom (simple et fiable) |
 
-**Architecture :** Utilise les State Processors d'API Platform pour une architecture propre et maintenable.
+**Architecture :** Endpoint custom dans DriverController qui accepte `application/json` natif (frontend-friendly).
 
 ---
 
@@ -35,7 +35,7 @@ Content-Type: application/json
 
 ### 🔹 Requête
 
-**URL :** `PATCH http://localhost:8080/api/drivers/availability`
+**URL :** `PATCH http://localhost:8080/api/driver/availability`
 
 **Headers :**
 ```http
@@ -162,7 +162,7 @@ export default function DriverAvailabilityToggle({
     setError(null);
 
     try {
-      const response = await fetch('http://localhost:8080/api/drivers/availability', {
+      const response = await fetch('http://localhost:8080/api/driver/availability', {
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -297,7 +297,7 @@ const toggleAvailability = async () => {
   error.value = null;
 
   try {
-    const response = await fetch('http://localhost:8080/api/drivers/availability', {
+    const response = await fetch('http://localhost:8080/api/driver/availability', {
       method: 'PATCH',
       headers: {
         'Authorization': `Bearer ${authStore.token}`,
@@ -395,7 +395,7 @@ export default function DriverAvailabilityToggle({
     try {
       const token = await AsyncStorage.getItem('authToken');
 
-      const response = await fetch('http://localhost:8080/api/drivers/availability', {
+      const response = await fetch('http://localhost:8080/api/driver/availability', {
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -490,7 +490,7 @@ const styles = StyleSheet.create({
 ### Passer en disponible
 
 ```bash
-curl -X PATCH http://localhost:8080/api/drivers/availability \
+curl -X PATCH http://localhost:8080/api/driver/availability \
   -H "Authorization: Bearer eyJ0eXAiOiJKV1Qi..." \
   -H "Content-Type: application/json" \
   -d '{
@@ -501,7 +501,7 @@ curl -X PATCH http://localhost:8080/api/drivers/availability \
 ### Passer en indisponible
 
 ```bash
-curl -X PATCH http://localhost:8080/api/drivers/availability \
+curl -X PATCH http://localhost:8080/api/driver/availability \
   -H "Authorization: Bearer eyJ0eXAiOiJKV1Qi..." \
   -H "Content-Type: application/json" \
   -d '{

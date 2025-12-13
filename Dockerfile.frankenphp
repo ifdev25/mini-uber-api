@@ -1,0 +1,107 @@
+# Dockerfile for Symfony API with FrankenPHP
+FROM dunglas/frankenphp:1-php8.3-alpine AS base
+
+# Install system dependencies
+RUN apk add --no-cache \
+    git \
+    unzip \
+    libzip-dev \
+    postgresql-dev \
+    icu-dev \
+    libpng-dev \
+    libjpeg-turbo-dev \
+    freetype-dev \
+    oniguruma-dev \
+    linux-headers \
+    $PHPIZE_DEPS
+
+# Install PHP extensions
+RUN install-php-extensions \
+    pdo_pgsql \
+    intl \
+    zip \
+    gd \
+    opcache \
+    mbstring
+
+# Install Composer
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+
+# Set working directory
+WORKDIR /app
+
+# Configure PHP
+COPY docker/php/php.ini /usr/local/etc/php/conf.d/app.ini
+COPY docker/php/opcache.ini /usr/local/etc/php/conf.d/opcache.ini
+
+# Development stage
+FROM base AS dev
+
+# Install Xdebug for development
+RUN install-php-extensions xdebug
+
+COPY docker/php/xdebug.ini /usr/local/etc/php/conf.d/xdebug.ini
+
+# Copy composer files first for better caching
+COPY composer.json composer.lock symfony.lock ./
+
+# Install dependencies
+RUN composer install --prefer-dist --no-scripts --no-progress --no-interaction --no-autoloader
+
+# Copy application files
+COPY . .
+
+# Generate autoloader and run scripts
+RUN composer dump-autoload --optimize && \
+    mkdir -p var/cache var/log && \
+    chown -R www-data:www-data var/ public/
+
+# Copy Caddyfile
+COPY docker/frankenphp/Caddyfile /etc/caddy/Caddyfile
+
+EXPOSE 80
+EXPOSE 443
+EXPOSE 443/udp
+
+# Development doesn't use worker mode - it will be slower but easier to debug
+# Worker mode is enabled via FRANKENPHP_NUM_WORKERS in compose.yaml
+
+CMD ["frankenphp", "run", "--config", "/etc/caddy/Caddyfile"]
+
+# Production stage
+FROM base AS prod
+
+# Override OPcache config for production
+COPY docker/php/opcache.prod.ini /usr/local/etc/php/conf.d/opcache.ini
+
+# Copy composer files first for better caching
+COPY composer.json composer.lock symfony.lock ./
+
+# Install dependencies (no dev)
+RUN composer install --prefer-dist --no-dev --no-scripts --no-progress --no-interaction --no-autoloader
+
+# Copy application files
+COPY . .
+
+# Optimize for production
+RUN composer dump-autoload --optimize --no-dev --classmap-authoritative && \
+    mkdir -p var/cache var/log && \
+    chown -R www-data:www-data var/ public/ && \
+    chmod -R 775 var/
+
+# Clear cache
+RUN php bin/console cache:clear --env=prod --no-debug --no-warmup || true && \
+    php bin/console cache:warmup --env=prod || true
+
+# Copy Caddyfile for production
+COPY docker/frankenphp/Caddyfile /etc/caddy/Caddyfile
+
+EXPOSE 80
+EXPOSE 443
+EXPOSE 443/udp
+
+# FrankenPHP will run in standard mode
+# To enable worker mode for maximum performance, install runtime/frankenphp-symfony
+# and set: FRANKENPHP_CONFIG="worker ./public/index.php"
+
+CMD ["frankenphp", "run", "--config", "/etc/caddy/Caddyfile"]

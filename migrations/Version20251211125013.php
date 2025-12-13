@@ -20,8 +20,8 @@ final class Version20251211125013 extends AbstractMigration
     public function up(Schema $schema): void
     {
         // this up() migration is auto-generated, please modify it to your needs
-        $this->addSql('DROP SEQUENCE refresh_tokens_id_seq CASCADE');
-        $this->addSql('DROP TABLE refresh_tokens');
+        $this->addSql('DROP SEQUENCE IF EXISTS refresh_tokens_id_seq CASCADE');
+        $this->addSql('DROP TABLE IF EXISTS refresh_tokens');
     }
 
     public function down(Schema $schema): void

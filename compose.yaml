@@ -1,19 +1,23 @@
 
 services:
-  # PHP-FPM Service
-  php:
+  # FrankenPHP Service (replaces PHP-FPM + Nginx)
+  frankenphp:
     build:
       context: .
       target: dev
-      dockerfile: Dockerfile
-    container_name: mini-uber-php
+      dockerfile: Dockerfile.frankenphp
+    container_name: mini-uber-frankenphp
     restart: unless-stopped
-    working_dir: /var/www/html
+    ports:
+      - "8080:80"
+      - "8443:443"
+      - "8443:443/udp"  # HTTP/3
+    working_dir: /app
     volumes:
-      - .:/var/www/html:cached
+      - .:/app:cached
       # Use named volumes for performance on Windows/Mac
-      - php_vendor:/var/www/html/vendor
-      - php_var:/var/www/html/var
+      - php_vendor:/app/vendor
+      - php_var:/app/var
     environment:
       APP_ENV: ${APP_ENV:-dev}
       APP_SECRET: ${APP_SECRET:-a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2w3x4y5z6}
@@ -23,24 +27,12 @@ services:
       MERCURE_JWT_SECRET: ${MERCURE_JWT_SECRET:-!ChangeThisMercureHubJWTSecretKey!}
       # Disable Xdebug by default for better performance
       XDEBUG_MODE: "off"
+      # FrankenPHP worker configuration (0 = disabled for dev, 2+ for production)
+      FRANKENPHP_NUM_WORKERS: "0"
+      SERVER_NAME: ":80"
     depends_on:
       - database
       - mercure
-    networks:
-      - mini-uber-network
-
-  # Nginx Service
-  nginx:
-    image: nginx:alpine
-    container_name: mini-uber-nginx
-    restart: unless-stopped
-    ports:
-      - "8080:80"
-    volumes:
-      - .:/var/www/html:cached
-      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
-    depends_on:
-      - php
     networks:
       - mini-uber-network
 

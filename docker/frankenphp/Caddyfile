@@ -1,0 +1,67 @@
+{
+    # Global options
+    # Server options
+    auto_https off
+}
+
+# Main server block
+:80 {
+    # Set root directory
+    root * /app/public
+
+    # Enable gzip compression
+    encode zstd gzip
+
+    # Handle OPTIONS preflight requests first
+    @options {
+        method OPTIONS
+    }
+    handle @options {
+        header {
+            Access-Control-Allow-Origin "*"
+            Access-Control-Allow-Methods "GET, POST, PUT, PATCH, DELETE, OPTIONS"
+            Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With, Accept"
+            Access-Control-Max-Age "86400"
+        }
+        respond 204
+    }
+
+    # Add CORS and security headers for all other requests
+    header {
+        # CORS headers
+        Access-Control-Allow-Origin "*"
+        Access-Control-Allow-Methods "GET, POST, PUT, PATCH, DELETE, OPTIONS"
+        Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With, Accept"
+        Access-Control-Max-Age "86400"
+
+        # Security headers
+        X-Frame-Options "SAMEORIGIN"
+        X-Content-Type-Options "nosniff"
+        X-XSS-Protection "1; mode=block"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        -Server
+    }
+
+    # PHP-FPM configuration
+    php_server {
+        # Resolve to index.php for all requests
+        resolve_root_symlink
+
+        # Environment variables
+        env APP_ENV {$APP_ENV:prod}
+        env APP_SECRET {$APP_SECRET}
+        env DATABASE_URL {$DATABASE_URL}
+    }
+
+    # Logging
+    log {
+        output stdout
+        format console
+        level INFO
+    }
+
+    # Error handling
+    handle_errors {
+        respond "{err.status_code} {err.status_text}"
+    }
+}

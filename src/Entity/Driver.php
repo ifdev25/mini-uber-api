@@ -45,6 +45,7 @@ use Symfony\Component\Validator\Constraints as Assert;
             provider: \App\State\DriverAvailabilityProvider::class,
             processor: \App\State\DriverAvailabilityProcessor::class,
             denormalizationContext: ['groups' => ['driver:availability']],
+            read: false,
             description: 'Toggle driver availability'
         )
     ]

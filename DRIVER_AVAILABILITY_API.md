@@ -9,7 +9,7 @@ Permet à un chauffeur de mettre à jour son statut de disponibilité (disponibl
 
 ## Détails de l'endpoint
 
-**URL** : `/api/driver/availability`
+**URL** : `/api/drivers/availability`
 **Méthode** : `PATCH`
 **Authentification** : Requise (JWT Token)
 **Rôle requis** : Driver (chauffeur)
@@ -98,7 +98,7 @@ const setDriverAvailable = async (isAvailable) => {
   const token = localStorage.getItem('token'); // ou votre système de stockage de token
 
   try {
-    const response = await fetch('http://localhost:8080/api/driver/availability', {
+    const response = await fetch('http://localhost:8080/api/drivers/availability', {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
@@ -143,7 +143,7 @@ const useDriverAvailability = () => {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:8080/api/driver/availability', {
+      const response = await fetch('http://localhost:8080/api/drivers/availability', {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -281,7 +281,7 @@ curl -X POST http://localhost:8080/api/login \
 ### Tester l'endpoint
 
 ```bash
-curl -X PATCH http://localhost:8080/api/driver/availability \
+curl -X PATCH http://localhost:8080/api/drivers/availability \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer {TOKEN}" \
   -d '{"isAvailable":true}'

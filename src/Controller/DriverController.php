@@ -233,43 +233,4 @@ class DriverController extends AbstractController
         ]);
     }
 
-    /**
-     * Toggle driver availability
-     */
-    #[Route('/driver/availability', methods: ['PATCH'])]
-    public function toggleAvailability(Request $request): JsonResponse
-    {
-        $user = $this->getUser();
-
-        if (!$user) {
-            return new JsonResponse(['error' => 'Not authenticated'], 401);
-        }
-
-        if ($user->getUserType() !== 'driver') {
-            return new JsonResponse(['error' => 'Not a driver'], 403);
-        }
-
-        $driver = $user->getDriver();
-
-        if (!$driver) {
-            return new JsonResponse(['error' => 'Driver profile not found'], 404);
-        }
-
-        $data = json_decode($request->getContent(), true);
-
-        if (!isset($data['isAvailable']) || !is_bool($data['isAvailable'])) {
-            return new JsonResponse(['error' => 'isAvailable field is required and must be a boolean'], 400);
-        }
-
-        $driver->setIsAvailable($data['isAvailable']);
-        $this->em->flush();
-
-        return new JsonResponse([
-            'message' => 'Availability updated successfully',
-            'driver' => [
-                'id' => $driver->getId(),
-                'isAvailable' => $driver->isAvailable()
-            ]
-        ]);
-    }
 }

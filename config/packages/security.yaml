@@ -1,9 +1,12 @@
 security:
     # https://symfony.com/doc/current/security.html#registering-the-user-hashing-passwords
     password_hashers:
-        Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface: 'auto'
+        Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface:
+            algorithm: bcrypt
+            cost: 4
         App\Entity\User:
-            algorithm: auto
+            algorithm: bcrypt
+            cost: 4
 
     # https://symfony.com/doc/current/security.html#loading-the-user-the-user-provider
     providers:
@@ -54,10 +57,8 @@ when@dev:
         password_hashers:
             # Reduce password hashing cost in development for faster login/register
             App\Entity\User:
-                algorithm: auto
+                algorithm: bcrypt
                 cost: 4 # Lowest possible value for bcrypt (faster)
-                time_cost: 3 # Lowest possible value for argon
-                memory_cost: 10 # Lowest possible value for argon
 
 when@test:
     security:

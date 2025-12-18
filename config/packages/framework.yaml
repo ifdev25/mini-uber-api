@@ -8,9 +8,19 @@ framework:
     serializer:
         default_context:
             enable_max_depth: true
+            # Optimisation: Skip null values in JSON
+            skip_null_values: true
 
     # Performance: Restrict enabled locales to only those used in the application
     enabled_locales: ['fr', 'en']
+
+    # HTTP Cache
+    http_cache:
+        enabled: true
+
+    # Assets versioning pour cache busting
+    assets:
+        json_manifest_path: '%kernel.project_dir%/public/build/manifest.json'
 
     #esi: true
     #fragments: true

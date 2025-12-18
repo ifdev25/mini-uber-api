@@ -71,12 +71,18 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column(name: 'password', type: 'string', length: 255)]
     #[Groups(['user:write'])]
     #[Assert\NotBlank(groups: ['user:write'])]
-    #[Assert\Length(min: 6)]
+    #[Assert\NotNull(message: '{{ label }} is empty, please enter a value.')]
     private ?string $password = null;
 
     #[ORM\Column(name: 'firstname', type: 'string', length: 255)]
     #[Groups(['user:read', 'user:write', 'driver:read', 'ride:read'])]
     #[Assert\NotBlank]
+    #[Assert\Length(
+        min: 2,
+        max: 50,
+        minMessage: 'Your name must be at least {{ limit }} characters long',
+        maxMessage: 'Your name cannot be longer than {{ limit }} characters',
+    )]
     private ?string $firstName = null;
 
     #[ORM\Column(name: 'lastname', type: 'string', length: 255)]
@@ -129,28 +135,30 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
      * @var Collection<int, Ride>
      */
     #[ORM\OneToMany(targetEntity: Ride::class, mappedBy: 'driver', orphanRemoval: true)]
-    #[Groups(['user:read'])]
-    #[MaxDepth(2)]
+    #[Groups(['user:rides:read'])]
+    #[MaxDepth(1)]
     private Collection $ridesAsDriver;
 
     /**
      * @var Collection<int, Ride>
      */
     #[ORM\OneToMany(targetEntity: Ride::class, mappedBy: 'passenger')]
-    #[Groups(['user:read'])]
-    #[MaxDepth(2)]
+    #[Groups(['user:rides:read'])]
+    #[MaxDepth(1)]
     private Collection $ridesAsPassenger;
 
     /**
      * @var Collection<int, Rating>
      */
     #[ORM\OneToMany(targetEntity: Rating::class, mappedBy: 'rater')]
+    #[Groups(['user:ratings:read'])]
     private Collection $ratingsGiven;
 
     /**
      * @var Collection<int, Rating>
      */
     #[ORM\OneToMany(targetEntity: Rating::class, mappedBy: 'rated')]
+    #[Groups(['user:ratings:read'])]
     private Collection $ratingsReceived;
 
     public function __construct()

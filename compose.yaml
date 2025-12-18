@@ -27,14 +27,19 @@ services:
       MERCURE_JWT_SECRET: ${MERCURE_JWT_SECRET:-!ChangeThisMercureHubJWTSecretKey!}
       # Disable Xdebug by default for better performance
       XDEBUG_MODE: "off"
-      # FrankenPHP worker configuration (0 = disabled for dev, 2+ for production)
-      FRANKENPHP_NUM_WORKERS: "0"
+      # FrankenPHP worker configuration (API Platform style)
+      FRANKENPHP_NUM_WORKERS: "2"
+      FRANKENPHP_WORKER_CONFIG: "watch"  # watch mode for dev (auto-reload)
       SERVER_NAME: ":80"
+      APP_RUNTIME: Runtime\FrankenPhpSymfony\Runtime
     depends_on:
       - database
       - mercure
     networks:
       - mini-uber-network
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
 
 ###> doctrine/doctrine-bundle ###
   database:
@@ -71,8 +76,9 @@ services:
       MERCURE_PUBLISHER_JWT_KEY: '!ChangeThisMercureHubJWTSecretKey!'
       MERCURE_SUBSCRIBER_JWT_KEY: '!ChangeThisMercureHubJWTSecretKey!'
       # Set the URL of your Symfony project (without trailing slash!) as value of the cors_origins directive
-      MERCURE_EXTRA_DIRECTIVES: |
-        cors_origins http://127.0.0.1:8080 http://localhost:8080
+      # MERCURE_EXTRA_DIRECTIVES: |
+      #   cors_origins http://127.0.0.1:8080 http://localhost:8080 http://localhost:3001 http://127.0.0.1:3001
+      # Note: Le fichier dev.Caddyfile utilise déjà "cors_origins *" qui autorise toutes les origines
     # Comment the following line to disable the development mode
     command: /usr/bin/caddy run --config /etc/caddy/dev.Caddyfile
     ports:

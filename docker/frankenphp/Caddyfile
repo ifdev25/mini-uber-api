@@ -1,7 +1,16 @@
 {
     # Global options
-    # Server options
     auto_https off
+
+    # FrankenPHP global configuration (API Platform style)
+    frankenphp {
+        worker {
+            env APP_RUNTIME Runtime\FrankenPhpSymfony\Runtime
+            file /app/public/index.php
+            num {$FRANKENPHP_NUM_WORKERS:2}
+            {$FRANKENPHP_WORKER_CONFIG}
+        }
+    }
 }
 
 # Main server block
@@ -9,8 +18,17 @@
     # Set root directory
     root * /app/public
 
-    # Enable gzip compression
-    encode zstd gzip
+    # Enable compression (zstd br gzip per API Platform)
+    encode zstd br gzip
+
+    # Cache static assets
+    @static {
+        file
+        path *.css *.js *.png *.jpg *.jpeg *.gif *.ico *.svg *.woff *.woff2 *.ttf *.eot
+    }
+    header @static {
+        Cache-Control "public, max-age=31536000, immutable"
+    }
 
     # Handle OPTIONS preflight requests first
     @options {
@@ -42,15 +60,9 @@
         -Server
     }
 
-    # PHP-FPM configuration
+    # PHP handling (API Platform style)
     php_server {
-        # Resolve to index.php for all requests
         resolve_root_symlink
-
-        # Environment variables
-        env APP_ENV {$APP_ENV:prod}
-        env APP_SECRET {$APP_SECRET}
-        env DATABASE_URL {$DATABASE_URL}
     }
 
     # Logging

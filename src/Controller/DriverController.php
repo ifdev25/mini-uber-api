@@ -74,6 +74,110 @@ class DriverController extends AbstractController
     }
 
     /**
+     * Get available (pending) rides for drivers
+     * Returns all rides waiting for a driver to accept
+     */
+    #[Route('/driver/available-rides', methods: ['GET'])]
+    public function getAvailableRides(Request $request): JsonResponse
+    {
+        $user = $this->getUser();
+
+        if (!$user) {
+            return new JsonResponse(['error' => 'Not authenticated'], 401);
+        }
+
+        if ($user->getUserType() !== 'driver') {
+            return new JsonResponse(['error' => 'Not a driver'], 403);
+        }
+
+        $driver = $user->getDriver();
+        if (!$driver) {
+            return new JsonResponse(['error' => 'Driver profile not found'], 404);
+        }
+
+        // Get query parameters for filtering
+        $limit = $request->query->get('limit', 20);
+        $vehicleType = $request->query->get('vehicleType'); // optional filter by vehicle type
+        $maxDistance = $request->query->get('maxDistance'); // optional: filter by distance from driver
+
+        // Build query for pending rides without a driver
+        $qb = $this->em->createQueryBuilder()
+            ->select('r')
+            ->from('App\Entity\Ride', 'r')
+            ->where('r.status = :status')
+            ->andWhere('r.driver IS NULL')
+            ->setParameter('status', 'pending')
+            ->orderBy('r.createdAt', 'ASC') // oldest first (FIFO)
+            ->setMaxResults($limit);
+
+        // Optional: filter by vehicle type matching driver's vehicle
+        if ($vehicleType) {
+            $qb->andWhere('r.vehicleType = :vehicleType')
+               ->setParameter('vehicleType', $vehicleType);
+        }
+
+        $rides = $qb->getQuery()->getResult();
+
+        // Format rides for frontend and optionally calculate distance
+        $formattedRides = [];
+        $driverLat = $driver->getCurrentLatitude();
+        $driverLng = $driver->getCurrentLongitude();
+
+        foreach ($rides as $ride) {
+            $rideData = [
+                'id' => $ride->getId(),
+                'status' => $ride->getStatus(),
+                'passenger' => [
+                    'id' => $ride->getPassenger()->getId(),
+                    'name' => $ride->getPassenger()->getFullName(),
+                    'rating' => $ride->getPassenger()->getRating(),
+                ],
+                'pickup' => [
+                    'address' => $ride->getPickupAddress(),
+                    'latitude' => $ride->getPickupLatitude(),
+                    'longitude' => $ride->getPickupLongitude(),
+                ],
+                'dropoff' => [
+                    'address' => $ride->getDropoffAddress(),
+                    'latitude' => $ride->getDropoffLatitude(),
+                    'longitude' => $ride->getDropoffLongitude(),
+                ],
+                'price' => [
+                    'estimated' => $ride->getEstimatedPrice(),
+                ],
+                'distance' => $ride->getEstimatedDistance(),
+                'duration' => $ride->getEstimatedDuration(),
+                'vehicleType' => $ride->getVehicleType(),
+                'createdAt' => $ride->getCreatedAt()?->format('Y-m-d H:i:s'),
+            ];
+
+            // Calculate distance from driver to pickup if driver location is available
+            if ($driverLat && $driverLng) {
+                $distanceToPickup = $this->geoService->calculateDistance(
+                    $driverLat,
+                    $driverLng,
+                    $ride->getPickupLatitude(),
+                    $ride->getPickupLongitude()
+                );
+                $rideData['distanceToPickup'] = round($distanceToPickup, 2);
+
+                // Skip this ride if maxDistance filter is set and exceeded
+                if ($maxDistance && $distanceToPickup > $maxDistance) {
+                    continue;
+                }
+            }
+
+            $formattedRides[] = $rideData;
+        }
+
+        return new JsonResponse([
+            'success' => true,
+            'data' => $formattedRides,
+            'count' => count($formattedRides),
+        ]);
+    }
+
+    /**
      * Get driver ride history
      * Returns all rides for the authenticated driver in a simple, frontend-friendly format
      */

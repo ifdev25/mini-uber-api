@@ -43,6 +43,7 @@ class NotificationService
 
     /**
      * Notify passenger that a driver accepted their ride
+     * Publie sur DEUX topics pour notifications instantanées
      */
     public function notifyPassengerRideAccepted(Ride $ride): void
     {
@@ -51,21 +52,33 @@ class NotificationService
             'ride' => [
                 'id' => $ride->getId(),
                 'status' => $ride->getStatus(),
+                'acceptedAt' => $ride->getAcceptedAt()?->format('c'),
                 'driver' => [
+                    'id' => $ride->getDriver()->getId(),
                     'name' => $ride->getDriver()->getFullName(),
                     'rating' => $ride->getDriver()->getRating(),
                     'phone' => $ride->getDriver()->getPhone(),
                     'vehicle' => [
                         'model' => $ride->getDriver()->getDriver()->getVehicleModel(),
                         'color' => $ride->getDriver()->getDriver()->getVehicleColor(),
-                        'type' => $ride->getDriver()->getDriver()->getVehicleType()
+                        'type' => $ride->getDriver()->getDriver()->getVehicleType(),
+                        'currentLocation' => [
+                            'lat' => $ride->getDriver()->getDriver()->getCurrentLatitude(),
+                            'lng' => $ride->getDriver()->getDriver()->getCurrentLongitude()
+                        ]
                     ]
                 ]
             ]
         ];
 
-        $topic = sprintf('users/%d', $ride->getPassenger()->getId());
-        $this->publish($topic, $data);
+        // Publication 1: Topic utilisateur (pour notifications générales)
+        $userTopic = sprintf('users/%d', $ride->getPassenger()->getId());
+        $this->publish($userTopic, $data);
+
+        // Publication 2: Topic de la course (pour suivi en temps réel)
+        // Format API Platform pour compatibilité avec mercure: true
+        $rideTopic = sprintf('/api/rides/%d', $ride->getId());
+        $this->publish($rideTopic, $data);
     }
 
     /**
@@ -156,11 +169,19 @@ class NotificationService
 
     /**
      * Publish a message to a Mercure topic
+     * Topics commençant par / sont des topics API Platform
+     * Autres topics sont des topics custom (users/X, drivers/X)
      */
     private function publish(string $topic, array $data): void
     {
+        // Si le topic commence par /, c'est un topic API Platform (ex: /api/rides/123)
+        // Sinon, c'est un topic custom qu'on préfixe (ex: users/48 -> http://localhost:3000/users/48)
+        $fullTopic = str_starts_with($topic, '/')
+            ? 'http://localhost:8080' . $topic  // Topic API Platform
+            : 'http://localhost:3000/' . $topic; // Topic custom
+
         $update = new Update(
-            sprintf('http://localhost:3000/%s', $topic),
+            $fullTopic,
             json_encode($data)
         );
 

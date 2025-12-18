@@ -17,7 +17,8 @@
       "Bash(dir /b:*)",
       "Bash(python -m json.tool:*)",
       "Bash(timeout /t 3)",
-      "Bash(docker exec:*)"
+      "Bash(docker exec:*)",
+      "Bash(if not exist dockerfrankenphp mkdir dockerfrankenphp)"
     ],
     "deny": [],
     "ask": []

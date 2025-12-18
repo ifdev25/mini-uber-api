@@ -1,0 +1,17 @@
+# Production optimizations for caching
+framework:
+    cache:
+        # Use APCu for application cache (fastest)
+        app: cache.adapter.apcu
+
+        # System cache for metadata
+        system: cache.adapter.apcu
+
+        # Cache pools configuration
+        pools:
+            # Doctrine metadata cache (API Platform uses this)
+            doctrine.result_cache_pool:
+                adapter: cache.adapter.apcu
+
+            doctrine.system_cache_pool:
+                adapter: cache.adapter.apcu

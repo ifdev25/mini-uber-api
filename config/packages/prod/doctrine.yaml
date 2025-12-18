@@ -1,0 +1,17 @@
+# Production Doctrine optimizations
+doctrine:
+    orm:
+        metadata_cache_driver:
+            type: apcu
+
+        query_cache_driver:
+            type: apcu
+
+        result_cache_driver:
+            type: apcu
+
+        # Enable second level cache for better performance
+        second_level_cache:
+            enabled: true
+            region_cache_driver:
+                type: apcu

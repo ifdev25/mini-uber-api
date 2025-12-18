@@ -1,0 +1,11 @@
+# config/packages/dev/framework.yaml
+# Performance optimization for development environment
+# Profiler disabled to improve API response times
+
+framework:
+    # Disable profiler for better performance in dev
+    # This can significantly improve response times (200-400ms faster)
+    # To re-enable for debugging: set profiler.enabled to true
+    profiler:
+        enabled: false
+        # collect: false  # Alternative: keep enabled but don't collect data

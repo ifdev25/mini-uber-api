@@ -13,6 +13,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\Routing\Annotation\Route;
 use Lexik\Bundle\JWTAuthenticationBundle\Services\JWTTokenManagerInterface;
+use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 #[Route('/api')]
 class AuthController extends AbstractController
@@ -21,7 +22,8 @@ class AuthController extends AbstractController
         private EntityManagerInterface $em,
         private UserPasswordHasherInterface $passwordHasher,
         private JWTTokenManagerInterface $jwtManager,
-        private EmailService $emailService
+        private EmailService $emailService,
+        private ValidatorInterface $validator
     ) {}
 
     #[Route('/register', methods: ['POST'])]
@@ -29,32 +31,25 @@ class AuthController extends AbstractController
     {
         $data = json_decode($request->getContent(), true);
 
-        // Validation des données requises
-        $requiredFields = ['email', 'password', 'firstName', 'lastName', 'phone'];
-        $errors = [];
+        // Créer l'entité User
+        $user = new User();
+        $user->setEmail($data['email'] ?? '');
+        $user->setFirstname($data['firstName'] ?? '');
+        $user->setLastname($data['lastName'] ?? '');
+        $user->setPhone($data['phone'] ?? '');
+        $user->setUsertype($data['userType'] ?? 'passenger');
+        $user->setPassword($data['password'] ?? '');
 
-        foreach ($requiredFields as $field) {
-            if (empty($data[$field])) {
-                $errors[$field] = "Le champ $field est requis.";
+        // Valider l'entité avec toutes les contraintes Assert
+        $violations = $this->validator->validate($user);
+
+        if (count($violations) > 0) {
+            $errors = [];
+            foreach ($violations as $violation) {
+                $propertyPath = $violation->getPropertyPath();
+                $errors[$propertyPath] = $violation->getMessage();
             }
-        }
 
-        // Validation de l'email
-        if (!empty($data['email']) && !filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
-            $errors['email'] = "L'email n'est pas valide.";
-        }
-
-        // Validation du mot de passe
-        if (!empty($data['password']) && strlen($data['password']) < 6) {
-            $errors['password'] = "Le mot de passe doit contenir au moins 6 caractères.";
-        }
-
-        // Validation du téléphone
-        if (!empty($data['phone']) && !preg_match('/^\+?[0-9]{10,15}$/', $data['phone'])) {
-            $errors['phone'] = "Le numéro de téléphone n'est pas valide.";
-        }
-
-        if (!empty($errors)) {
             return new JsonResponse([
                 'error' => true,
                 'message' => 'Erreur de validation',
@@ -62,23 +57,17 @@ class AuthController extends AbstractController
             ], 422);
         }
 
-        // Vérifier si l'email existe déjà
+        // Vérifier si l'email existe déjà (validation UniqueEntity)
         $existingUser = $this->em->getRepository(User::class)->findOneBy(['email' => $data['email']]);
         if ($existingUser) {
             return new JsonResponse([
                 'error' => true,
                 'message' => 'Un compte avec cet email existe déjà.',
-                'code' => 409
-            ], 409);
+                'violations' => ['email' => 'Un compte avec cet email existe déjà.']
+            ], 422);
         }
 
-        $user = new User();
-        $user->setEmail($data['email']);
-        $user->setFirstname($data['firstName']);
-        $user->setLastname($data['lastName']);
-        $user->setPhone($data['phone']);
-        $user->setUsertype($data['userType'] ?? 'passenger');
-
+        // Hash du mot de passe
         $hashedPassword = $this->passwordHasher->hashPassword($user, $data['password']);
         $user->setPassword($hashedPassword);
 
@@ -112,14 +101,6 @@ class AuthController extends AbstractController
             ],
             'token' => $token
         ], 201);
-    }
-
-    #[Route('/login', methods: ['POST'])]
-    public function login(): JsonResponse
-    {
-        // Géré automatiquement par LexikJWTAuthenticationBundle
-        // Configuration dans security.yaml
-        return new JsonResponse(['message' => 'Login handled by JWT']);
     }
 
     #[Route('/me', methods: ['GET'])]

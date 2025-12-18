@@ -25,6 +25,7 @@ use Symfony\Component\Validator\Constraints as Assert;
     normalizationContext: ['groups' => ['ride:read'], 'enable_max_depth' => true],
     denormalizationContext: ['groups' => ['ride:write']],
     processor: \App\State\RideProcessor::class,
+    mercure: true,
     operations: [
         new Get(),
         new GetCollection(),
@@ -84,6 +85,7 @@ class Ride
 
     #[ORM\ManyToOne(inversedBy: 'ridesAsPassenger')]
     #[Groups(['ride:read', 'ride:write'])]
+    #[MaxDepth(1)]
     private ?User $passenger = null;
 
     #[ORM\Column(length: 20)]
@@ -162,6 +164,7 @@ class Ride
      * @var Collection<int, Rating>
      */
     #[ORM\OneToMany(targetEntity: Rating::class, mappedBy: 'ride')]
+    #[Groups(['ride:ratings:read'])]
     private Collection $ratings;
 
 

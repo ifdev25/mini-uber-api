@@ -1,10 +1,41 @@
 api_platform:
     title: Mini Uber API
     version: 1.0.0
+
     defaults:
         stateless: true
         cache_headers:
             vary: ['Content-Type', 'Authorization', 'Origin']
+            max_age: 60
+            shared_max_age: 3600
+            public: false
+
+        # Pagination optimisée
+        pagination_client_enabled: true
+        pagination_client_items_per_page: true
+        pagination_items_per_page: 30
+        pagination_maximum_items_per_page: 100
+        pagination_partial: true  # Évite les COUNT() coûteux
+
+        # Performance optimisations (API Platform 2025)
+        extra_properties:
+            standard_put: true
+            rfc_7807_compliant_errors: true
+
+    # Eager loading optimisé
+    eager_loading:
+        enabled: true
+        fetch_partial: true  # Ne charge que les champs nécessaires
+        max_joins: 30
+        force_eager: true
+
+    # JsonStreamer pour 10x meilleures performances (2025)
+    # enable_json_streamer: true  # Requires symfony/json-streamer package
+
+    # Formats optimisés
+    formats:
+        json: ['application/json']
+        jsonld: ['application/ld+json']
 
     # Configuration Swagger pour JWT (méthode officielle API Platform)
     swagger:

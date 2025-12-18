@@ -69,9 +69,11 @@ class RideAcceptProcessor implements ProcessorInterface
         // Mettre le chauffeur comme non disponible
         $driver->getDriver()->setIsAvailable(false);
 
+        // Flush pour sauvegarder les changements
+        // Note: Mercure publiera automatiquement grâce à mercure: true dans ApiResource
         $this->em->flush();
 
-        // Notifier le passager que sa course a été acceptée
+        // Notifier explicitement le passager avec détails complets (notification push supplémentaire)
         $this->notificationService->notifyPassengerRideAccepted($data);
 
         return $data;
